@@ -264,6 +264,57 @@ expectOrgans('n_inferior_hypogastric_plexus', { prostate: 'denervated', bladder:
 expectOrgans('n_cavernous', { penis: ['partial', { parasympathetic: 'lost', sympathetic: 'lost', sensory: undefined }], prostate: 'unaffected' });
 expectOrgans('root_S3', { bladder: ['partial', { parasympathetic: 'reduced' }] });
 
+// head and neck: cranial nerves, peripheral vs central facial palsy, laryngeal nerves, ansa cervicalis
+expect('n_facial', {
+  frontalis: 'paralysed', orbicularis_oculi: 'paralysed', orbicularis_oris: 'paralysed', buccinator: 'paralysed', platysma: 'paralysed',
+  stapedius: 'paralysed', stylohyoid: 'paralysed', digastric: 'weakened', masseter: 'unaffected'
+});
+expectOrgans('n_facial', {
+  lacrimal_gland: ['partial', { parasympathetic: 'lost' }], submandibular_gland: ['partial', { parasympathetic: 'lost' }],
+  tongue: ['partial', { sensory: 'reduced' }]
+});
+expect('n_corticonuclear_facial', {
+  orbicularis_oris: 'paralysed', zygomaticus_major: 'paralysed', depressor_anguli_oris: 'paralysed', buccinator: 'paralysed',
+  frontalis: 'unaffected', orbicularis_oculi: 'weakened', stapedius: 'unaffected'
+});
+expect('n_parotid_plexus', { frontalis: 'paralysed', orbicularis_oris: 'paralysed', stapedius: 'unaffected', digastric: 'unaffected' });
+expect('n_oculomotor', {
+  superior_rectus: 'paralysed', inferior_rectus: 'paralysed', medial_rectus: 'paralysed', inferior_oblique: 'paralysed',
+  levator_palpebrae: 'paralysed', lateral_rectus: 'unaffected', superior_oblique: 'unaffected'
+});
+expectOrgans('n_oculomotor', { eye: ['partial', { parasympathetic: 'lost' }] });
+expect('n_abducens', { lateral_rectus: 'paralysed', medial_rectus: 'unaffected', superior_oblique: 'unaffected' });
+expect('n_trochlear', { superior_oblique: 'paralysed', lateral_rectus: 'unaffected', inferior_oblique: 'unaffected' });
+expect('n_hypoglossal', {
+  genioglossus: 'paralysed', hyoglossus: 'paralysed', styloglossus: 'paralysed', intrinsic_tongue: 'paralysed',
+  palatoglossus: 'unaffected', geniohyoid: 'unaffected'
+});
+expect('n_accessory', { sternocleidomastoid: 'paralysed', trapezius: 'paralysed' });
+expect('n_recurrent_laryngeal_left', {
+  posterior_cricoarytenoid: 'paralysed', lateral_cricoarytenoid: 'paralysed', vocalis: 'paralysed', cricothyroid: 'unaffected',
+  inferior_constrictor: 'weakened'
+});
+expectOrgans('n_recurrent_laryngeal_left', { larynx: ['partial', { sensory: 'reduced' }] });
+expect('n_external_laryngeal', { cricothyroid: 'paralysed', posterior_cricoarytenoid: 'unaffected' });
+expect('n_vagus', {
+  levator_veli_palatini: 'paralysed', superior_constrictor: 'paralysed', inferior_constrictor: 'paralysed', palatoglossus: 'paralysed',
+  cricothyroid: 'paralysed', posterior_cricoarytenoid: 'paralysed', vocalis: 'paralysed', stylopharyngeus: 'unaffected'
+});
+expect('n_mandibular', {
+  masseter: 'paralysed', temporalis: 'paralysed', medial_pterygoid: 'paralysed', lateral_pterygoid: 'paralysed', mylohyoid: 'paralysed',
+  digastric: 'weakened', buccinator: 'unaffected'
+});
+expectOrgans('n_mandibular', { parotid_gland: ['partial', { sensory: 'reduced' }] });
+expect('n_glossopharyngeal', { stylopharyngeus: 'paralysed', masseter: 'unaffected' });
+expectOrgans('n_glossopharyngeal', { parotid_gland: ['partial', { parasympathetic: 'lost' }] });
+expect('n_ansa_cervicalis', { sternohyoid: 'paralysed', sternothyroid: 'paralysed', omohyoid: 'paralysed', thyrohyoid: 'unaffected' });
+expect('n_plexus_cervical', {
+  geniohyoid: 'paralysed', thyrohyoid: 'paralysed', sternohyoid: 'paralysed', diaphragm: 'weakened', levator_scapulae: 'weakened',
+  scalenus_anterior: 'unaffected'
+});
+expect('n_cervical_sympathetic', { superior_tarsal: 'paralysed', levator_palpebrae: 'unaffected' });
+expectOrgans('n_cervical_sympathetic', { eye: ['partial', { sympathetic: 'lost' }] });
+
 // Quiz: every generated question has 4 distinct options including the answer, all from the region
 // (or its context structures).
 const { makeQuestion, quizTypesFor } = await import('../js/quiz.js');

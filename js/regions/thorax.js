@@ -263,11 +263,11 @@ const arteries = [
   A('a_common_carotid_right', ['a_brachiocephalic'], { en: 'Right common carotid artery', de: 'Rechte A. carotis communis', la: 'Arteria carotis communis dextra' },
     { en: 'Arises from the brachiocephalic trunk behind the right sternoclavicular joint and ascends in the carotid sheath with the internal jugular vein and the vagus nerve; it divides at the upper border of the thyroid cartilage (C4).',
       de: 'Entspringt hinter dem rechten Sternoklavikulargelenk aus dem Truncus brachiocephalicus und steigt in der Karotisscheide mit V. jugularis interna und N. vagus auf; teilt sich in Höhe des Oberrands des Schildknorpels (C4).' },
-    { path: [[1.5, -2, 1], [1.9, 1, 0.2], [2.2, 5, -0.6]], r: 0.5 }),
+    { path: [[1.5, -2, 1], [1.9, 1, 0.2], [2.2, 5, -0.6], [2.4, 7.4, -0.8]], r: 0.5 }),
   A('a_common_carotid_left', ['a_aortic_arch'], { en: 'Left common carotid artery', de: 'Linke A. carotis communis', la: 'Arteria carotis communis sinistra' },
     { en: 'Second branch of the arch, arising directly from it; it ascends to the left of the trachea into the neck. Its thoracic part is therefore longer than on the right.',
       de: 'Zweiter Ast, direkt aus dem Aortenbogen; steigt links neben der Trachea in den Hals auf. Ihr thorakaler Abschnitt ist daher länger als rechts.' },
-    { path: [[-0.4, -4.2, -0.3], [-1, -1, -0.4], [-1.8, 5, -0.6]], r: 0.5 }),
+    { path: [[-0.4, -4.2, -0.3], [-1, -1, -0.4], [-1.8, 5, -0.6], [-2.4, 7.4, -0.8]], r: 0.5 }),
   A('a_subclavian_left', ['a_aortic_arch'], { en: 'Left subclavian artery', de: 'Linke A. subclavia', la: 'Arteria subclavia sinistra' },
     { en: 'Third branch of the arch. It rises to the left of the trachea, arches over the cervical pleura and the apex of the left lung and becomes the axillary artery at the outer border of the first rib. Branches as on the right: vertebral, internal thoracic, thyrocervical and costocervical arteries.',
       de: 'Dritter Ast des Aortenbogens. Steigt links neben der Trachea auf, zieht über Pleurakuppel und linke Lungenspitze und wird am Außenrand der 1. Rippe zur A. axillaris. Äste wie rechts: A. vertebralis, A. thoracica interna, Truncus thyrocervicalis und Truncus costocervicalis.' },
@@ -375,8 +375,8 @@ const veins = [
 
 // ------------------------------------------------------------ nerves
 const N = (id, group, segList, parents, name, info, extra) => ({ id, type: 'nerve', group, segs: segList, parents, name, info, ...extra });
-const VAGUS_R = [[2.4, 6, -0.6], [2.6, 2.4, 0.4], [2.4, -0.2, 1.6], [1.6, -3, -0.9], [1.4, -6, -2.8], [1.6, -9, -4], [0.8, -12, -5.2], [0.2, -16, -4.9], [-0.8, -18.8, -3.6]];
-const VAGUS_L = [[-1.8, 6, -0.8], [-2, 0, -0.4], [-2.6, -4.6, -1.4], [-2.4, -8, -3.8], [-0.6, -12, -3.9], [-0.8, -16, -3.6], [-1.6, -18.6, -2.3]];
+const VAGUS_R = [[0.9, 15.8, -4.2], [2.5, 15.5, -3.6], [2.9, 14.2, -3.0], [2.95, 11.4, -2.2], [2.9, 8.6, -1.6], [2.8, 6, -1.3], [2.6, 2.4, 0.4], [2.4, -0.2, 1.6], [1.6, -3, -0.9], [1.4, -6, -2.8], [1.6, -9, -4], [0.8, -12, -5.2], [0.2, -16, -4.9], [-0.8, -18.8, -3.6]];
+const VAGUS_L = [[-0.9, 15.8, -4.2], [-2.5, 15.5, -3.6], [-2.9, 14.2, -3.0], [-2.95, 11.4, -2.2], [-2.9, 8.6, -1.6], [-2.4, 6, -1.3], [-2, 0, -0.4], [-2.6, -4.6, -1.4], [-2.4, -8, -3.8], [-0.6, -12, -3.9], [-0.8, -16, -3.6], [-1.6, -18.6, -2.3]];
 const CARDIAC_HUB = [-0.6, -6.4, -1];
 
 const nerves = [

@@ -22,7 +22,7 @@ export const meta = {
     [undefined, { en: 'Nerves', de: 'Nerven' }],
     ['cranial', { en: 'Other nerves', de: 'Weitere Nerven' }]
   ],
-  context: ['cervical_vertebrae', 'thoracic_vertebrae', 'ribs', 'sternum'],
+  context: ['cervical_vertebrae', 'thoracic_vertebrae', 'ribs', 'sternum', 'n_accessory'],
   camera: { target: [-15, -37, -2], position: [-24, -30, 152] }
 };
 
@@ -342,16 +342,9 @@ const nerves = [
     path: [[18.8, -61, 1], [19.6, -63.6, 0.5], [21.6, -64.4, 0.4], [23.6, -63.4, 0.4]], r: 0.16
   },
 
-  // --- non-plexus nerves for the shoulder girdle
+  // --- non-plexus nerves for the shoulder girdle (the accessory nerve lives in the head and neck region)
   {
-    id: 'n_accessory', type: 'nerve', group: 'cranial', segs: ['XI'], parents: [],
-    name: { en: 'Accessory nerve (CN XI)', de: 'Akzessoriusnerv (XI. Hirnnerv)', la: 'Nervus accessorius' },
-    info: { en: 'Cranial nerve XI, not part of the brachial plexus. Crosses the posterior triangle of the neck superficially to supply sternocleidomastoid and trapezius.', de: 'XI. Hirnnerv, nicht Teil des Plexus brachialis. Kreuzt oberflächlich das seitliche Halsdreieck und versorgt M. sternocleidomastoideus und M. trapezius.' },
-    lesion: { en: 'After neck lymph node biopsy: drooping shoulder, weak shrug, difficulty raising the arm above 90° because the scapula cannot rotate upwards.', de: 'Nach Lymphknotenbiopsie am Hals: hängende Schulter, schwaches Schulterheben, Schwierigkeiten, den Arm über 90° zu heben, weil die Scapula nicht nach oben rotiert.' },
-    path: [[4, 12, -4], [7, 6, -6.4], [8, 1, -9.8], [6, -8, -10.6]], r: 0.2
-  },
-  {
-    id: 'n_cervical_plexus', type: 'nerve', group: 'cranial', segs: ['C3', 'C4'], parents: [],
+    id: 'n_cervical_plexus', type: 'nerve', group: 'cranial', segs: ['C3', 'C4'], parents: ['n_plexus_cervical'],
     name: { en: 'Cervical plexus branches (C3–C4)', de: 'Äste des Halsgeflechts (C3–C4)', la: 'Rami plexus cervicalis (C3–C4)' },
     info: { en: 'Direct branches of C3–C4 to levator scapulae (and proprioceptive fibres to trapezius). Shown so that levator scapulae\'s double supply is visible.', de: 'Direkte Äste aus C3–C4 zum M. levator scapulae (und propriozeptive Fasern zum M. trapezius). Dargestellt, um die Doppelversorgung des M. levator scapulae zu zeigen.' },
     lesion: { en: 'Partial levator scapulae weakness.', de: 'Teilweise Schwäche des M. levator scapulae.' },
@@ -499,7 +492,7 @@ const muscles = [
     { en: 'Occipital bone, nuchal ligament, spinous processes C7–T12', de: 'Os occipitale, Lig. nuchae, Dornfortsätze C7–T12' },
     { en: 'Lateral third of clavicle, acromion, spine of scapula', de: 'Laterales Drittel der Clavicula, Akromion, Spina scapulae' },
     { en: 'Upper fibres elevate the scapula (shrug); middle fibres retract it; lower fibres depress it. Upper and lower fibres together rotate the scapula upwards so the arm can be raised above 90°.', de: 'Pars descendens hebt die Scapula (Schulterzucken), Pars transversa zieht sie zur Wirbelsäule, Pars ascendens senkt sie. Pars descendens und ascendens drehen die Scapula gemeinsam nach oben, damit der Arm über 90° gehoben werden kann.' },
-    [['n_accessory', ['XI']]], ['a_suprascapular'], ['clavicle'], ['clavicle', 'scapula'],
+    [['n_accessory', ['CN XI']]], ['a_suprascapular'], ['clavicle'], ['clavicle', 'scapula'],
     { fibers: [[[0.8, 10, -6.4], [6, 6, -8], [12.5, 1.6, -4.2]], [[0.8, 4, -11.2], [9, 2, -11], [16.6, 0.8, -6]], [[0.8, -6, -11.6], [7, -4, -11.4], [13.6, -3.4, -10.6]], [[0.8, -17, -10.6], [5, -10, -11.4], [8.4, -5, -11.2]]], r: 1.2 }),
   M('levator_scapulae', 'shoulder',
     { en: 'Levator scapulae', de: 'Schulterblattheber', la: 'Musculus levator scapulae' },

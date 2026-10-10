@@ -64,6 +64,29 @@ function plateGeometry(outline) {
   return geo;
 }
 
+// A patch of an ellipsoid surface (skull vault bones). Longitude runs from anterior (0°) towards
+// the body's right (90°), latitude from the equator (0°) up to the vertex (90°).
+function shellGeometry(c, radii, [lon0, lon1], [lat0, lat1]) {
+  const nu = Math.max(4, Math.ceil(Math.abs(lon1 - lon0) / 6)), nv = Math.max(3, Math.ceil(Math.abs(lat1 - lat0) / 6));
+  const rad = Math.PI / 180, pos = [], idx = [];
+  for (let j = 0; j <= nv; j++) {
+    const b = (lat0 + (lat1 - lat0) * j / nv) * rad;
+    for (let i = 0; i <= nu; i++) {
+      const l = (lon0 + (lon1 - lon0) * i / nu) * rad;
+      pos.push(...v([c[0] + radii[0] * Math.cos(b) * Math.sin(l), c[1] + radii[1] * Math.sin(b), c[2] + radii[2] * Math.cos(b) * Math.cos(l)]).toArray());
+    }
+  }
+  for (let j = 0; j < nv; j++) for (let i = 0; i < nu; i++) {
+    const a = j * (nu + 1) + i, b = a + nu + 1;
+    idx.push(a, b, a + 1, a + 1, b, b + 1);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  return geo;
+}
+
 export class Viewer {
   constructor(container, { onPick, onHover }) {
     this.container = container;
@@ -197,7 +220,7 @@ export class Viewer {
     const base = s.color ?? COLORS[s.type];
     const mat = new THREE.MeshStandardMaterial({
       color: base, roughness: s.type === 'bone' ? 0.75 : 0.5, metalness: 0.02,
-      transparent: true, opacity: 1, side: s.shape?.plate || s.type === 'organ' ? THREE.DoubleSide : THREE.FrontSide
+      transparent: true, opacity: 1, side: s.shape?.plate || s.shape?.shells || s.type === 'organ' ? THREE.DoubleSide : THREE.FrontSide
     });
     const add = geo => { const m = new THREE.Mesh(geo, mat); m.userData.id = s.id; group.add(m); };
 
@@ -233,6 +256,7 @@ export class Viewer {
         const g = new THREE.SphereGeometry(1, 20, 14); g.scale(...sc); g.translate(...v(c).toArray()); add(g);
       }
       if (sh.plate) add(plateGeometry(sh.plate));
+      for (const [c, radii, lon, lat] of sh.shells || []) add(shellGeometry(c, radii, lon, lat));
     } else if (s.type === 'muscle') {
       const longTendon = /forearm|hand|leg|foot/.test(s.group) && s.insertionBones.some(b => DISTAL_BONES.has(b));
       for (const f of s.shape.fibers) {
@@ -250,7 +274,7 @@ export class Viewer {
     const box = new THREE.Box3().setFromObject(group);
     this.objects.set(s.id, {
       group, mat, type: s.type, region: s.region, base, centre: box.getCenter(new THREE.Vector3()),
-      opacity: s.type === 'organ' ? s.shape.opacity ?? 0.45 : 1, size: box.getSize(new THREE.Vector3()).length()
+      opacity: s.type === 'organ' ? s.shape.opacity ?? 0.45 : s.shape?.opacity ?? 1, size: box.getSize(new THREE.Vector3()).length()
     });
     this.scene.add(group);
   }
@@ -270,8 +294,9 @@ export class Viewer {
       const base = o.base;
       // Organs are translucent; structures borrowed from another region can be faded so they
       // do not hide the region's own structures (e.g. the sternum in front of the heart).
+      // Bones may set their own opacity too (the skull vault, so the cranial nerves show through).
       const own = o.type === 'organ' ? o.opacity
-        : o.region === this.region ? 1 : o.type === 'bone' ? contextOpacity : o.type === 'muscle' ? Math.min(contextOpacity, 0.3) : 1;
+        : o.region === this.region ? o.opacity : o.type === 'bone' ? Math.min(contextOpacity, o.opacity) : o.type === 'muscle' ? Math.min(contextOpacity, 0.3) : 1;
       let color = base, opacity = own, emissive = 0x000000, visible = this.visibleTypes[o.type];
 
       if (quizTarget) {
