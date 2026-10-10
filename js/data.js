@@ -10,6 +10,7 @@ import * as upperLimb from './regions/upper-limb.js';
 import * as lowerLimb from './regions/lower-limb.js';
 import * as back from './regions/back.js';
 import * as thorax from './regions/thorax.js';
+import * as abdomen from './regions/abdomen.js';
 
 // The whole body, in the planned build order. Only `available` regions have data yet.
 export const BODY_REGIONS = [
@@ -17,14 +18,14 @@ export const BODY_REGIONS = [
   { id: 'lower_limb', available: true, name: { en: 'Lower limb', de: 'Untere Extremität' } },
   { id: 'back', available: true, name: { en: 'Back and trunk wall', de: 'Rücken und Rumpfwand' } },
   { id: 'thorax', available: true, name: { en: 'Thorax', de: 'Thorax' } },
-  { id: 'abdomen', name: { en: 'Abdomen', de: 'Abdomen' } },
+  { id: 'abdomen', available: true, name: { en: 'Abdomen', de: 'Abdomen / Bauchsitus' } },
   { id: 'pelvis', name: { en: 'Pelvis', de: 'Becken' } },
   { id: 'head_neck', name: { en: 'Head and neck', de: 'Kopf und Hals' } },
   { id: 'neuro', name: { en: 'Neuroanatomy', de: 'Neuroanatomie' } }
 ];
 export const regionById = Object.fromEntries(BODY_REGIONS.map(r => [r.id, r]));
 
-const modules = { upper_limb: upperLimb, lower_limb: lowerLimb, back, thorax };
+const modules = { upper_limb: upperLimb, lower_limb: lowerLimb, back, thorax, abdomen };
 
 export const structures = [];
 for (const [region, mod] of Object.entries(modules)) {

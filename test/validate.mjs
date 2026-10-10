@@ -214,6 +214,28 @@ expect('n_phrenic', { diaphragm: 'paralysed' });
 expectOrgans('n_greater_splanchnic', { heart: 'unaffected', lung_left: 'unaffected', oesophagus_thoracic: 'unaffected' });
 expectOrgans('n_intercostal_upper', { pleura: ['partial', { sensory: 'reduced' }] });
 
+// abdomen: foregut, midgut and hindgut plexuses, vagal trunks and referred-pain nerves
+expectOrgans('n_vagus', {
+  stomach: ['partial', { parasympathetic: 'lost', sympathetic: undefined }], jejunum: ['partial', { parasympathetic: 'lost' }],
+  spleen: 'unaffected', sigmoid_colon: 'unaffected'
+});
+expectOrgans('n_greater_splanchnic', {
+  stomach: ['partial', { sympathetic: 'lost' }], spleen: 'denervated', jejunum: ['partial', { sympathetic: 'reduced' }], kidneys: 'unaffected'
+});
+expectOrgans('n_coeliac_plexus', {
+  stomach: ['partial', { sympathetic: 'lost', parasympathetic: undefined }], pancreas: 'denervated',
+  jejunum: ['partial', { parasympathetic: 'lost', sympathetic: 'reduced' }]
+});
+expectOrgans('n_superior_mesenteric_plexus', {
+  jejunum: 'denervated', appendix: 'denervated', transverse_colon: ['partial', { sympathetic: 'reduced', parasympathetic: 'lost' }],
+  descending_colon: 'unaffected'
+});
+expectOrgans('n_inferior_mesenteric_plexus', { sigmoid_colon: ['denervated', { sympathetic: 'lost' }], ureters: ['partial', { sympathetic: 'reduced' }], jejunum: 'unaffected' });
+expectOrgans('n_lesser_splanchnic', { appendix: ['partial', { sympathetic: 'lost' }], kidneys: ['partial', { sympathetic: 'reduced' }] });
+expectOrgans('n_phrenic', { gallbladder: ['partial', { sensory: 'lost' }], liver: ['partial', { sensory: 'lost' }], peritoneum: ['partial', { sensory: 'reduced' }] });
+expectOrgans('n_thoracoabdominal', { peritoneum: ['partial', { sensory: 'reduced' }], stomach: 'unaffected' });
+expectOrgans('n_vagal_trunk_anterior', { liver: ['partial', { parasympathetic: 'lost' }], stomach: ['partial', { parasympathetic: 'reduced' }] });
+
 // Quiz: every generated question has 4 distinct options including the answer, all from the region
 // (or its context structures).
 const { makeQuestion, quizTypesFor } = await import('../js/quiz.js');
