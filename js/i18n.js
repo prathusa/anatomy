@@ -2,7 +2,17 @@
 export const UI = {
   en: {
     title: 'Anatomy',
-    subtitle: 'Free, interactive anatomy in English, German and Latin',
+    structuresTitle: 'Structure library', atlasLabel: 'THE INTERACTIVE ATLAS',
+    viewerLabel: 'Interactive 3D anatomy model', viewControls: 'Model view', zoomIn: 'Zoom in', zoomOut: 'Zoom out', modeLabel: 'Learning mode', languageLabel: 'Language',
+    frontView: 'Front', backView: 'Back', overview: 'Overview', bodyGuide: 'Body outline',
+    orbitHint: 'Drag to rotate · Scroll or pinch to zoom',
+    exploreTitle: 'Every structure has a story.',
+    exploreHelp: 'Choose a structure to explore its function, attachments and connections. Switch layers to look beneath the surface.',
+    startExploring: 'Start exploring', modelRegion: 'Region overview',
+    noResults: 'No structures found. Try an English, German or Latin name.',
+    enlargeGraph: 'Enlarge connection graph',
+
+    subtitle: 'An atlas for curious minds · EN / DE / Latin',
     region: 'Region', comingSoon: 'coming soon',
     explore: 'Explore', lesion: 'Lesion', quiz: 'Quiz',
     search: 'Search (EN / DE / Latin)…',
@@ -61,7 +71,17 @@ export const UI = {
   },
   de: {
     title: 'Anatomie',
-    subtitle: 'Kostenlose, interaktive Anatomie auf Deutsch, Englisch und Latein',
+    structuresTitle: 'Strukturbibliothek', atlasLabel: 'DER INTERAKTIVE ATLAS',
+    viewerLabel: 'Interaktives 3D-Anatomiemodell', viewControls: 'Modellansicht', zoomIn: 'Vergrößern', zoomOut: 'Verkleinern', modeLabel: 'Lernmodus', languageLabel: 'Sprache',
+    frontView: 'Vorne', backView: 'Hinten', overview: 'Übersicht', bodyGuide: 'Körperumriss',
+    orbitHint: 'Ziehen zum Drehen · Scrollen oder Aufziehen zum Zoomen',
+    exploreTitle: 'Jede Struktur erzählt eine Geschichte.',
+    exploreHelp: 'Wähle eine Struktur und erkunde ihre Funktion, Ansätze und Verbindungen. Blende Ebenen aus, um unter die Oberfläche zu schauen.',
+    startExploring: 'Erkundung starten', modelRegion: 'Regionsübersicht',
+    noResults: 'Keine Strukturen gefunden. Suche auf Deutsch, Englisch oder Latein.',
+    enlargeGraph: 'Verbindungsgraph vergrößern',
+
+    subtitle: 'Ein Atlas für Neugierige · DE / EN / Latein',
     region: 'Region', comingSoon: 'demnächst',
     explore: 'Erkunden', lesion: 'Läsion', quiz: 'Quiz',
     search: 'Suche (DE / EN / Latein)…',

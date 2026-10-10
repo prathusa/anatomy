@@ -46,7 +46,7 @@ const viewer = new Viewer($('#viewer'), {
     const s = byId[id];
     const rect = $('#stage').getBoundingClientRect();
     tip.innerHTML = `${esc(s.name[state.lang])}<br><span class="la">${esc(s.name.la)}</span>`;
-    tip.style.left = `${e.clientX - rect.left + 14}px`;
+    tip.style.left = `${Math.max(8, Math.min(rect.width - 285, e.clientX - rect.left + 14))}px`;
     tip.style.top = `${e.clientY - rect.top + 14}px`;
     tip.hidden = false;
   }
@@ -65,9 +65,19 @@ function applyStaticText() {
   document.documentElement.lang = state.lang;
   document.body.dataset.mode = state.mode;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t()[el.dataset.i18n]; });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t()[el.dataset.i18nAria]));
   $('#search').placeholder = t().search;
-  document.querySelectorAll('[data-lang]').forEach(b => b.classList.toggle('active', b.dataset.lang === state.lang));
-  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === state.mode));
+  $('#search').setAttribute('aria-label', t().search);
+  $('[data-action="graph-max"]').setAttribute('aria-label', t().enlargeGraph);
+  $('[data-action="graph-max"]').title = t().enlargeGraph;
+  if (state.region) {
+    $('#stage-title').textContent = region().name[state.lang];
+    const active = state.mode === 'explore' ? state.selected : state.mode === 'lesion' ? state.lesion : null;
+    $('#stage-selection').textContent = active ? byId[active].name[state.lang] : state.mode === 'quiz' ? t().quiz : t().modelRegion;
+    $('#structure-count').textContent = structures.filter(s => s.region === state.region).length;
+  }
+  document.querySelectorAll('[data-lang]').forEach(b => { b.classList.toggle('active', b.dataset.lang === state.lang); b.setAttribute('aria-pressed', b.dataset.lang === state.lang); });
+  document.querySelectorAll('[data-mode]').forEach(b => { b.classList.toggle('active', b.dataset.mode === state.mode); b.setAttribute('aria-pressed', b.dataset.mode === state.mode); });
   document.querySelectorAll('[data-graph]').forEach(b => b.classList.toggle('active', b.dataset.graph === state.graphMode));
   if (state.region) {
     $('[data-graph="plexus"]').textContent = region().plexus[state.lang];
@@ -160,7 +170,7 @@ function renderList() {
     return `<h3>${esc(title)}</h3>` + visible.map(s =>
       `<button data-id="${s.id}" class="${s.id === active ? 'active' : ''}">${esc(s.name[state.lang])}<small>${esc(s.name[other()])} · <i>${esc(s.name.la)}</i></small></button>`
     ).join('');
-  }).join('');
+  }).join('') || `<p class="empty-search">${esc(t().noResults)}</p>`;
 }
 
 // ------------------------------------------------------------------ explore card
@@ -224,7 +234,10 @@ function cnsRows(s) {
 function renderExploreCard() {
   const L = t(), lang = state.lang;
   const s = byId[state.selected];
-  if (!s) { $('#card').innerHTML = `<p>${esc(L.pickSomething)}</p>`; return; }
+  if (!s) {
+    $('#card').innerHTML = `<div class="empty-card"><span class="eyebrow">${esc(L.explore)}</span><div class="empty-symbol" aria-hidden="true">✳</div><h2>${esc(L.exploreTitle)}</h2><p>${esc(L.exploreHelp)}</p><button class="start-button" data-id="${region().start}">${esc(L.startExploring)} <span aria-hidden="true">↗</span></button></div>`;
+    return;
+  }
   let body = '';
   const header = `<span class="badge ${s.type}">${esc(L.types[s.type])}</span>
     <h2>${esc(s.name[lang])}</h2>
@@ -383,7 +396,7 @@ function setRegion(id) {
   state.region = id;
   viewer.setRegion(id);
   graph.setRegion(id);
-  if (!inRegion(state.selected)) state.selected = region().start;
+  if (!inRegion(state.selected)) state.selected = null;
   if (!inRegion(state.lesion)) state.lesion = null;
 }
 
@@ -392,7 +405,10 @@ function select(id, { keepGraph = false, keepMode = false } = {}) {
   if (!keepMode && state.mode !== 'explore') setMode('explore', false);
   state.selected = id;
   viewer.setSelection(id, id ? relatedIds(id) : []);
-  if (!keepGraph || state.graphMode === 'neighbourhood') { state.graphMode = 'neighbourhood'; graph.showNeighbourhood(id); }
+  if (!keepGraph || state.graphMode === 'neighbourhood') {
+    state.graphMode = id ? 'neighbourhood' : 'plexus';
+    if (id) graph.showNeighbourhood(id); else graph.showPlexus(false);
+  }
   if (state.mode === 'explore') renderExploreCard();
   renderList();
   applyStaticText();
@@ -420,8 +436,8 @@ function setMode(mode, rerender = true) {
   graph.setLesion(null);
   if (mode === 'explore') {
     viewer.setSelection(state.selected, state.selected ? relatedIds(state.selected) : []);
-    state.graphMode = 'neighbourhood';
-    graph.showNeighbourhood(state.selected);
+    state.graphMode = state.selected ? 'neighbourhood' : 'plexus';
+    if (state.selected) graph.showNeighbourhood(state.selected); else graph.showPlexus(false);
     if (rerender) renderExploreCard();
   } else if (mode === 'lesion') {
     state.graphMode = 'plexusMuscles';
@@ -470,16 +486,21 @@ function readHash() {
   setRegion(id ? (inRegion(id) ? state.region : byId[id].region) : regionById[key]?.available ? key : state.region || firstRegion);
   if (mode === 'lesion') { setMode('lesion'); if (id) setLesion(id); }
   else if (mode === 'quiz') setMode('quiz');
-  else { setMode('explore'); select(id || state.selected || region().start); }
+  else { setMode('explore'); select(id); }
 }
 
 // ------------------------------------------------------------------ events
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-id], [data-mode], [data-lang], [data-graph], [data-action], [data-quiz], [data-answer]');
+  const el = e.target.closest('[data-id], [data-mode], [data-lang], [data-graph], [data-action], [data-quiz], [data-answer], [data-view]');
   if (!el) return;
   if (el.tagName === 'A') e.preventDefault();
   const d = el.dataset;
-  if (d.mode) setMode(d.mode);
+  if (d.view) {
+    if (d.view === 'overview') { setMode('explore'); select(null); viewer.resetView(); }
+    else if (d.view === 'zoom-in' || d.view === 'zoom-out') viewer.zoom(d.view === 'zoom-in' ? 0.8 : 1.25);
+    else viewer.orient(d.view);
+  }
+  else if (d.mode) setMode(d.mode);
   else if (d.lang) setLang(d.lang);
   else if (d.graph) setGraphMode(d.graph);
   else if (d.quiz) { state.quiz.type = d.quiz; newQuestion(); }
@@ -510,6 +531,7 @@ document.querySelectorAll('[data-layer]').forEach(cb => cb.addEventListener('cha
   document.querySelectorAll('[data-layer]').forEach(c => { types[c.dataset.layer] = c.checked; });
   viewer.setVisibleTypes(types);
 }));
+$('#ghost-toggle').addEventListener('change', e => { viewer.ghost.visible = e.target.checked; });
 $('#reset-view').addEventListener('click', () => viewer.resetView());
 $('#region').addEventListener('change', e => { setRegion(e.target.value); setMode(state.mode); });
 new ResizeObserver(() => graph.resize()).observe($('#graph'));

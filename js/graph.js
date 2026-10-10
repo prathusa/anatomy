@@ -3,7 +3,7 @@ import cytoscape from '../vendor/cytoscape.esm.min.mjs';
 import { structures, byId, relations, formatSegs, regionById } from './data.js';
 import { ancestors } from './lesion.js';
 
-const TYPE_COLOR = { bone: '#d9cdb2', muscle: '#c0675a', nerve: '#e6b800', artery: '#d61f2c', organ: '#d98c8c', vein: '#2f5fbf',
+const TYPE_COLOR = { bone: '#dccca8', muscle: '#ad5148', nerve: '#d7ad32', artery: '#cf3e4f', organ: '#d98c8c', vein: '#2f5fbf',
   brain: '#c99a90', tract: '#2e9e5b', function: '#22c3a6' };
 const EDGE_COLOR = { innervates: '#c9a200', supplies: '#d61f2c', branch: '#555', origin: '#8a8a8a', insertion: '#8a8a8a', drains: '#2f5fbf', part: '#8a8a8a',
   serves: '#22c3a6', passes: '#9a7fd1', fibres: '#e6b800' };
@@ -26,10 +26,10 @@ export class Graph {
       style: [
         {
           selector: 'node', style: {
-            'background-color': 'data(color)', label: 'data(label)', 'font-size': 10, color: '#1d2433',
+            'background-color': 'data(color)', label: 'data(label)', 'font-size': 10, color: '#23352e',
             'text-wrap': 'wrap', 'text-max-width': 110, 'text-valign': 'bottom', 'text-margin-y': 3,
             width: 18, height: 18, 'border-width': 1, 'border-color': '#fff',
-            'text-background-color': '#fff', 'text-background-opacity': 0.75, 'text-background-padding': 1,
+            'text-background-color': '#fffefa', 'text-background-opacity': 0.75, 'text-background-padding': 1,
             'min-zoomed-font-size': 7
           }
         },
@@ -41,7 +41,7 @@ export class Graph {
         { selector: 'node[type="brain"]', style: { shape: 'ellipse', width: 22, height: 22 } },
         { selector: 'node[type="tract"]', style: { shape: 'round-tag' } },
         { selector: 'node[type="function"]', style: { shape: 'star', width: 22, height: 22 } },
-        { selector: 'node.focus', style: { width: 30, height: 30, 'border-width': 3, 'border-color': '#1f4fbf', 'font-weight': 'bold', 'font-size': 12 } },
+        { selector: 'node.focus', style: { width: 30, height: 30, 'border-width': 3, 'border-color': '#326952', 'font-weight': 'bold', 'font-size': 12 } },
         { selector: 'node.paralysed', style: { 'background-color': '#e0182d' } },
         { selector: 'node.weakened', style: { 'background-color': '#ff9a1f' } },
         { selector: 'node.lesion', style: { 'background-color': '#7a2cff', 'border-color': '#3a0090', 'border-width': 3 } },
@@ -51,7 +51,7 @@ export class Graph {
           selector: 'edge', style: {
             width: 1.6, 'line-color': 'data(color)', 'target-arrow-color': 'data(color)', 'target-arrow-shape': 'triangle',
             'arrow-scale': 0.8, 'curve-style': 'bezier', label: 'data(label)', 'font-size': 8, color: '#6b5600',
-            'text-rotation': 'autorotate', 'text-background-color': '#fff', 'text-background-opacity': 0.8,
+            'text-rotation': 'autorotate', 'text-background-color': '#fffefa', 'text-background-opacity': 0.8,
             'min-zoomed-font-size': 7
           }
         },

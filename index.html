@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Anatomy · Anatomie</title>
-  <meta name="description" content="Free interactive anatomy in English, German and Latin: 3D model, connection graph, nerve lesion simulator and quiz. Built region by region: upper and lower limb, back and thorax so far.">
+  <meta name="description" content="Free interactive anatomy in English, German and Latin: 3D model, connection graph, nerve lesion simulator and quiz. Explore all eight body regions.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%A6%B4%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
   <script type="importmap">
@@ -14,16 +14,19 @@
 <body>
   <header>
     <div class="brand">
+      <svg class="brand-mark" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="currentColor"/><path d="M20 9v22M9 20h22" stroke="#e7efea" stroke-width="2.5"/><circle cx="20" cy="20" r="8" fill="none" stroke="#91b3a4" stroke-width="1.5"/></svg>
+      <div>
       <h1 data-i18n="title"></h1>
       <p data-i18n="subtitle"></p>
+      </div>
     </div>
     <label class="region-pick"><span data-i18n="region"></span> <select id="region"></select></label>
-    <nav class="modes" aria-label="Mode">
+    <nav class="modes" aria-label="Mode" data-i18n-aria="modeLabel">
       <button data-mode="explore" data-i18n="explore"></button>
       <button data-mode="lesion" data-i18n="lesion"></button>
       <button data-mode="quiz" data-i18n="quiz"></button>
     </nav>
-    <div class="lang" role="group" aria-label="Language">
+    <div class="lang" role="group" aria-label="Language" data-i18n-aria="languageLabel">
       <button data-lang="de">DE</button>
       <button data-lang="en">EN</button>
     </div>
@@ -31,7 +34,8 @@
 
   <main>
     <aside id="sidebar">
-      <input id="search" type="search" autocomplete="off">
+      <div class="sidebar-heading"><span data-i18n="structuresTitle"></span><span id="structure-count"></span></div>
+      <input id="search" type="search" autocomplete="off" aria-label="Search anatomy structures">
       <fieldset id="layers">
         <legend data-i18n="layers"></legend>
         <label><input type="checkbox" data-layer="bone" checked> <span class="dot bone"></span><span data-i18n="bone"></span></label>
@@ -48,7 +52,13 @@
     </aside>
 
     <section id="stage">
-      <div id="viewer"></div>
+      <div id="viewer" role="img" aria-label="Interactive 3D anatomy model" data-i18n-aria="viewerLabel"></div>
+      <div class="stage-heading"><span class="eyebrow" data-i18n="atlasLabel"></span><h2 id="stage-title"></h2><p id="stage-selection"></p></div>
+      <div class="view-tools" role="group" aria-label="Model view" data-i18n-aria="viewControls">
+        <button data-view="front" data-i18n="frontView"></button><button data-view="back" data-i18n="backView"></button><button data-view="overview" data-i18n="overview"></button>
+      </div>
+      <div class="model-tools"><label><input id="ghost-toggle" type="checkbox" checked><span data-i18n="bodyGuide"></span></label><div class="zoom-tools"><button data-view="zoom-in" aria-label="Zoom in" data-i18n-aria="zoomIn">+</button><button data-view="zoom-out" aria-label="Zoom out" data-i18n-aria="zoomOut">−</button></div></div>
+      <p class="orbit-hint" data-i18n="orbitHint"></p>
       <div id="tooltip" hidden></div>
       <div id="legend"></div>
       <button id="reset-view" data-i18n="resetView"></button>

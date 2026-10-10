@@ -41,6 +41,14 @@ The site is built **region by region**, and all eight regions are complete: the 
   - central lesions: which function is lost after a given lesion, or where the lesion lies given its deficits.
 - **Links**: URLs can be shared and bookmarked, e.g. `#explore/n_ulnar`, `#lesion/n_common_fibular`, `#quiz/lower_limb`, `#lesion/n_vagus`, `#lesion/n_pudendal`, `#lesion/n_corticonuclear_facial`, `#lesion/spinal_cord_thoracic`, `#lesion/a_pica`, `#quiz/neuro`.
 
+## Model and interface
+
+The atlas uses a warm, responsive interface with a dark 3D stage, a searchable structure library, and linked detail cards. The stage has front/back views, overview, zoom, reset, and an optional body outline. On phones, the model comes first, followed by the library and details. All controls and learning modes work in English and German.
+
+The procedural model now includes longitudinal muscle surface detail, pale tendons, continuous fan-shaped broad muscles, closed bone plates, shaped shafts, separate carpal bones and segmented finger/toe phalanges. Materials, lighting and transparent context structures make layers easier to distinguish. These are visual refinements to the existing **schematic** region coordinates, not a scan-derived or anatomically exact model.
+
+Surface maps are generated locally; there are no remote fonts, textures or model downloads. Geometry is built only for the current region and its orientation structures, then disposed when leaving that region. Lesion and quiz colours apply to both muscle bellies and tendons.
+
 ## Roadmap
 
 | # | Region | Status |
@@ -76,7 +84,7 @@ To publish it, copy the folder to any static host, e.g. GitHub Pages or Netlify.
 | `js/regions/upper-limb.js`, `lower-limb.js`, `back.js`, `thorax.js`, `abdomen.js`, `pelvis.js`, `head-neck.js`, `neuro.js` | Region data: names in EN/DE/Latin, attachments, actions or organ functions, innervation and segments, supply and drainage, CNS pathways and arterial territories, 3D geometry, and region settings (`meta`) |
 | `js/data.js` | Region registry and roadmap: merges all region modules and builds the relations between structures |
 | `js/lesion.js` | Lesion model: which segments are lost downstream of a cut, which muscles are paralysed or weakened, which organs are denervated or partly denervated, and which central functions are lost or impaired on which side |
-| `js/viewer3d.js` | three.js scene |
+| `js/viewer3d.js`, `js/surfaces.js` | Procedural three.js geometry, materials and offline surface maps |
 | `js/graph.js` | Cytoscape connection graph |
 | `js/quiz.js` | Question generators |
 | `js/i18n.js` | UI strings in DE and EN |
