@@ -1,5 +1,5 @@
 // Question generators. Each returns { ask, detail?, options: [{id, label}], answer, highlight? }.
-import { structures, byId } from './data.js';
+import { structures, byId, regionById } from './data.js';
 import { computeLesion } from './lesion.js';
 import { UI } from './i18n.js';
 
@@ -18,6 +18,7 @@ function poolsFor(region) {
       all,
       nerves,
       muscles: all.filter(s => s.type === 'muscle'),
+      organs: all.filter(s => s.type === 'organ'),
       branchNerves: nerves.filter(n => !PLEXUS_PARTS.has(n.group))
     };
   }
@@ -34,14 +35,54 @@ function distractors(answer, pool, n = 3) {
   return [...a.slice(0, 2), ...b, ...a.slice(2)].slice(0, n);
 }
 
-export const QUIZ_TYPES = ['name', 'nerve', 'lesion', 'translate', 'function'];
+export const QUIZ_TYPES = ['name', 'nerve', 'lesion', 'translate', 'function', 'supply'];
+
+// Question types that make sense for a region: muscle questions need muscles, supply questions need organs.
+export function quizTypesFor(region) {
+  const { muscles, organs } = poolsFor(region);
+  return QUIZ_TYPES.filter(q => ['nerve', 'lesion', 'function'].includes(q) ? muscles.length > 0
+    : q === 'supply' ? organs.length > 0 : true);
+}
+
+// Everything up- or downstream of an artery or nerve, which would also count as "supplying" the organ.
+function lineage(id) {
+  const out = new Set([id]);
+  const up = x => { for (const p of byId[x]?.parents || []) if (!out.has(p)) { out.add(p); up(p); } };
+  const down = x => { for (const s of structures) if (s.parents?.includes(x) && !out.has(s.id)) { out.add(s.id); down(s.id); } };
+  up(id); down(id);
+  return out;
+}
 
 export function makeQuestion(type, lang, region) {
   const t = UI[lang];
-  const { all, nerves, muscles, branchNerves } = poolsFor(region);
+  const { all, nerves, muscles, organs, branchNerves } = poolsFor(region);
+  if (!quizTypesFor(region).includes(type)) type = quizTypesFor(region)[0];
   switch (type) {
+    case 'supply': {
+      for (let tries = 0; tries < 50; tries++) {
+        const o = pick(organs);
+        const askArtery = Math.random() < 0.5;
+        const ctx = new Set(regionById[region]?.context || []);
+        const local = id => byId[id]?.region === region || ctx.has(id);
+        const all = askArtery ? o.arteries : o.nerves.map(x => x.n);
+        // Answers come from the region (and its context); every listed supplier is excluded from the distractors.
+        const listed = all.filter(local);
+        if (!listed.length) continue;
+        const kind = askArtery ? 'artery' : 'nerve';
+        const exclude = new Set(all.flatMap(id => [...lineage(id)]));
+        const candidates = structures.filter(s => s.type === kind && !exclude.has(s.id) && local(s.id));
+        if (candidates.length < 3) continue;
+        const ans = byId[pick(listed)];
+        const opts = shuffle([ans, ...shuffle(candidates).slice(0, 3)]);
+        return {
+          ask: askArtery ? t.qSupplyArteryAsk(o.name[lang]) : t.qSupplyNerveAsk(o.name[lang]),
+          options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: ans.id, highlight: o.id
+        };
+      }
+      return makeQuestion('name', lang, region);
+    }
     case 'name': {
-      const pool = all.filter(s => s.type === 'muscle' || s.type === 'bone').concat(branchNerves);
+      const pool = all.filter(s => ['muscle', 'bone', 'organ', 'vein', 'artery'].includes(s.type)).concat(branchNerves);
       const ans = pick(pool);
       const opts = shuffle([ans, ...distractors(ans, pool.filter(s => s.type === ans.type))]);
       return { ask: t.qNameAsk, options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: ans.id, highlight: ans.id };

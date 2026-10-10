@@ -362,7 +362,7 @@ const nerves = [
 // ---------------------------------------------------------------- arteries
 const arteries = [
   {
-    id: 'a_subclavian', type: 'artery', parents: [],
+    id: 'a_subclavian', type: 'artery', parents: ['a_brachiocephalic'],
     name: { en: 'Subclavian artery', de: 'Schlüsselbeinarterie', la: 'Arteria subclavia' },
     info: { en: 'On the right from the brachiocephalic trunk. Arches over the first rib behind scalenus anterior (together with the plexus trunks, in the scalene gap) and becomes the axillary artery at the lateral border of the first rib. Gives the thyrocervical trunk (suprascapular artery).', de: 'Rechts aus dem Truncus brachiocephalicus. Zieht hinter dem M. scalenus anterior (mit den Primärsträngen durch die Skalenuslücke) über die erste Rippe und wird am Außenrand der ersten Rippe zur A. axillaris. Gibt den Truncus thyrocervicalis (A. suprascapularis) ab.' },
     path: [[1.5, -2, 1], [4.5, 2.6, 0.2], [7.5, 1.6, -0.6], [10, -1.2, -0.2]], r: 0.55

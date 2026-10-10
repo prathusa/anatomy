@@ -31,8 +31,18 @@ export const UI = {
     correct: 'Correct!', wrong: 'Not quite. Correct answer:', next: 'Next question', score: 'Score',
     disclaimer: 'Learning aid only, not for clinical decisions. The 3D model is schematic. Segment values follow common textbooks (Moore, Prometheus) and vary by about one segment between sources; check against your course atlas.',
     sourceNote: 'Open source · code MIT · content CC BY 4.0',
-    types: { bone: 'Bone', muscle: 'Muscle', nerve: 'Nerve', artery: 'Artery' },
-    showNames: 'Names'
+    types: { bone: 'Bone', muscle: 'Muscle', nerve: 'Nerve', artery: 'Artery', organ: 'Organ', vein: 'Vein' },
+    showNames: 'Names',
+    organ: 'Organs', vein: 'Veins',
+    kinds: { sympathetic: 'Sympathetic', parasympathetic: 'Parasympathetic', sensory: 'Sensory' },
+    organFunction: 'Function', partOf: 'Part of', parts: 'Parts', drainsInto: 'Drains into', tributaries: 'Receives',
+    fromOtherRegions: 'From other regions',
+    denervated: 'Denervated', partial: 'Partly denervated', reduced: 'reduced',
+    affectedOrgans: 'Affected organs', noOrgans: 'No organs affected in this model.',
+    lesionIntroOrgans: 'Pick a nerve, trunk or plexus to cut. Organs whose autonomic or sensory supply is completely lost turn red, partly affected organs orange. The vagus carries the token CN X.',
+    qSupply: 'Which artery / nerve supplies this organ?',
+    qSupplyArteryAsk: o => `Which artery supplies <b>${o}</b>?`,
+    qSupplyNerveAsk: o => `Which nerve supplies <b>${o}</b>?`
   },
   de: {
     title: 'Anatomie',
@@ -65,7 +75,18 @@ export const UI = {
     correct: 'Richtig!', wrong: 'Leider falsch. Richtige Antwort:', next: 'Nächste Frage', score: 'Punkte',
     disclaimer: 'Nur als Lernhilfe, nicht für klinische Entscheidungen. Das 3D-Modell ist schematisch. Die Segmentangaben folgen gängigen Lehrbüchern (Moore, Prometheus) und weichen je nach Quelle um etwa ein Segment ab; bitte mit dem Atlas aus dem Kurs abgleichen.',
     sourceNote: 'Open Source · Code MIT · Inhalte CC BY 4.0',
-    types: { bone: 'Knochen', muscle: 'Muskel', nerve: 'Nerv', artery: 'Arterie' },
-    showNames: 'Namen'
+    types: { bone: 'Knochen', muscle: 'Muskel', nerve: 'Nerv', artery: 'Arterie', organ: 'Organ', vein: 'Vene' },
+    showNames: 'Namen',
+    organ: 'Organe', vein: 'Venen',
+    kinds: { sympathetic: 'Sympathisch', parasympathetic: 'Parasympathisch', sensory: 'Sensibel' },
+    organFunction: 'Funktion', partOf: 'Teil von', parts: 'Teile', drainsInto: 'Mündet in', tributaries: 'Zuflüsse',
+    fromOtherRegions: 'Aus anderen Regionen',
+    denervated: 'Denerviert', partial: 'Teilweise denerviert', reduced: 'vermindert',
+    affectedOrgans: 'Betroffene Organe', noOrgans: 'In diesem Modell sind keine Organe betroffen.',
+    lesionIntroOrgans: 'Wähle einen Nerv, Grenzstrang oder Plexus zum Durchtrennen. Organe, deren vegetative oder sensible Versorgung vollständig ausfällt, werden rot, teilweise betroffene orange. Der Vagus führt das Kürzel CN X.',
+    qSupply: 'Welche Arterie / welcher Nerv versorgt das Organ?',
+    // Organ names carry no article, so the organ leads the question instead of sitting inside the sentence.
+    qSupplyArteryAsk: o => `<b>${o}</b>: Welche Arterie ist an der Blutversorgung beteiligt?`,
+    qSupplyNerveAsk: o => `<b>${o}</b>: Welcher Nerv ist an der Innervation beteiligt?`
   }
 };

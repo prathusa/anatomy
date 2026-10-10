@@ -251,7 +251,11 @@ const nerves = [
       de: 'Aus dem Plexus cervicalis (C3–C5, vor allem C4). Zieht auf dem M. scalenus anterior abwärts, tritt hinter der V. subclavia in den Thorax und verläuft vor der Lungenwurzel auf dem Perikard zum Zwerchfell. Einziger motorischer Nerv des Zwerchfells; sensibel für Perikard, mediastinale und diaphragmale Pleura und das Peritoneum unter dem Zwerchfell.' },
     { lesion: { en: 'The paralysed half of the diaphragm rises on the chest X-ray and moves paradoxically upwards on sniffing; breathless when lying flat. A spinal cord injury above C3 stops breathing. Irritation of the diaphragm (gallbladder, spleen, blood) is felt as shoulder-tip pain, because C4 also supplies the skin over the shoulder.',
       de: 'Die gelähmte Zwerchfellhälfte steht im Röntgenbild hoch und bewegt sich beim Schnupfversuch paradox nach oben; Atemnot im Liegen. Eine Rückenmarksverletzung oberhalb von C3 führt zum Atemstillstand. Eine Reizung des Zwerchfells (Gallenblase, Milz, Blut) wird als Schulterschmerz empfunden, weil C4 auch die Haut über der Schulter versorgt.' },
-      path: [spinalEnd('C4'), [3.4, 4, -2], [3.2, 0, -0.6], [3.6, -6, 0], [4.6, -12, 0.2], [5.2, -16.6, -0.8]], r: 0.2 }),
+      // Right and left nerve; the left one curves around the apex of the heart on the pericardium.
+      paths: [
+        [spinalEnd('C4'), [3.4, 4, -2], [3.2, 0, -0.6], [3.6, -6, 0], [4.6, -12, 0.2], [5.2, -16.6, -0.8]],
+        [[-spinalEnd('C4')[0], ...spinalEnd('C4').slice(1)], [-3.4, 4, -2], [-3.0, 0, -0.4], [-3.2, -4, 0], [-3.6, -7.4, 0.2], [-5.6, -10, 1.0], [-6.4, -14, 1.0], [-6.4, -17.4, 0]]
+      ], r: 0.2 }),
   N('n_intercostal_upper', 'ventral', segs('T1', 'T6'), ['sn_thoracic'], { en: 'Intercostal nerves 1–6', de: 'Nervi intercostales 1–6', la: 'Nervi intercostales I–VI' },
     { en: 'Ventral rami of T1–T6. Each runs in the groove below its rib, between the internal and innermost intercostal muscles, below the vein and artery. Lateral cutaneous branches come out in the midaxillary line, anterior cutaneous branches beside the sternum. They supply the intercostal muscles and the skin of the chest (T4 at the nipple). The second also gives the intercostobrachial nerve to the medial upper arm.',
       de: 'Rami anteriores von Th1–Th6. Jeder verläuft im Sulcus costae unter seiner Rippe zwischen Mm. intercostales interni und intimi, unterhalb von Vene und Arterie. Rami cutanei laterales treten in der mittleren Axillarlinie aus, Rami cutanei anteriores neben dem Sternum. Sie versorgen die Interkostalmuskeln und die Haut der Brust (Th4 an der Mamille). Der 2. gibt zudem den N. intercostobrachialis zur Innenseite des Oberarms ab.' },
@@ -276,7 +280,7 @@ const segmentalStart = y => { const z = bodyZ(y); return [[-1.4, y - 0.4, z + 1.
 const DORSAL_LEVELS = [...range(3, 12).map(k => exitY('T' + k) + 0.2), ...range(1, 4).map(k => Y['L' + k])];
 
 const arteries = [
-  A('a_thoracic_aorta', [], { en: 'Thoracic aorta (descending)', de: 'Brustaorta (Pars descendens)', la: 'Aorta thoracica' },
+  A('a_thoracic_aorta', ['a_aortic_arch'], { en: 'Thoracic aorta (descending)', de: 'Brustaorta (Pars descendens)', la: 'Aorta thoracica' },
     { en: 'Continues the aortic arch from T4 down the left side of the vertebral bodies in the posterior mediastinum and passes through the aortic hiatus of the diaphragm at T12. Gives the posterior intercostal arteries 3–11, the subcostal and superior phrenic arteries, and branches to the bronchi and oesophagus.',
       de: 'Setzt den Aortenbogen ab Th4 links an den Wirbelkörpern im hinteren Mediastinum fort und tritt bei Th12 durch den Hiatus aorticus des Zwerchfells. Gibt die Aa. intercostales posteriores 3–11, die A. subcostalis und die Aa. phrenicae superiores sowie Äste zu Bronchien und Ösophagus ab.' },
     { path: [[-1.6, -6, -3.6], [-1.9, -10, -4.7], [-1.9, -16, -5.3], [-1.4, -22, -5], [-0.6, -27.4, -4.2]], r: 0.85 }),

@@ -28,13 +28,17 @@ for (const r of BODY_REGIONS.filter(r => r.available)) {
   const nerveGroups = new Set((r.nerveGroups || []).map(([g]) => g));
   for (const n of own.filter(s => s.type === 'nerve')) if (!nerveGroups.has(n.group)) fail(`${n.id}: nerve group ${n.group} not listed in ${r.id} meta`);
   for (const m of own.filter(s => s.type === 'muscle')) if (!r.muscleGroups?.[m.group]) fail(`${m.id}: muscle group ${m.group} not in ${r.id} muscleGroups`);
+  const organGroups = new Set((r.organGroups || []).map(([g]) => g));
+  for (const o of own.filter(s => s.type === 'organ')) if (!organGroups.has(o.group)) fail(`${o.id}: organ group ${o.group} not listed in ${r.id} meta`);
+  for (const [g, label] of r.organGroups || []) if (!label?.en || !label?.de) fail(`region ${r.id}: organ group ${g} needs en and de labels`);
   if (r.camera?.target?.length !== 3 || r.camera?.position?.length !== 3) fail(`region ${r.id} has no camera`);
-  for (const id of r.context || []) if (byId[id]?.type !== 'bone' || byId[id].region === r.id) fail(`region ${r.id}: context "${id}" is not a bone of another region`);
+  // context: structures of other regions shown for orientation (bones, and e.g. the phrenic nerve in the thorax)
+  for (const id of r.context || []) if (!byId[id] || byId[id].region === r.id) fail(`region ${r.id}: context "${id}" is not a structure of another region`);
 }
 
-// a muscle lists each nerve once (otherwise the graph gets duplicate edge ids)
-for (const s of structures.filter(s => s.type === 'muscle')) {
-  const ns = s.nerves.map(inn => inn.n);
+// a muscle lists each nerve once, an organ each nerve once per fibre kind (otherwise the graph gets duplicate edge ids)
+for (const s of structures.filter(s => s.type === 'muscle' || s.type === 'organ')) {
+  const ns = s.nerves.map(inn => inn.n + (inn.kind ? ':' + inn.kind : ''));
   if (new Set(ns).size !== ns.length) fail(`${s.id} lists a nerve twice`);
 }
 
@@ -70,6 +74,37 @@ for (const s of structures) {
     }
   }
   if (s.type === 'artery' && !hasPath(s)) fail(`${s.id} has no path`);
+  if (s.type === 'artery') for (const p of s.parents) if (byId[p]?.type !== 'artery') fail(`${s.id}: parent ${p} is not an artery`);
+  if (s.type === 'organ') {
+    if (!s.info?.en || !s.info?.de) fail(`${s.id} missing info (function)`);
+    if (s.lesion && (!s.lesion.en || !s.lesion.de)) fail(`${s.id} clinical note needs en and de`);
+    for (const inn of s.nerves) {
+      const n = byId[inn.n];
+      if (!n || n.type !== 'nerve') { fail(`${s.id}: ${inn.n} is not a nerve`); continue; }
+      if (!['sympathetic', 'parasympathetic', 'sensory'].includes(inn.kind)) fail(`${s.id}: unknown fibre kind ${inn.kind}`);
+      if (!inn.seg?.length) fail(`${s.id}: innervation by ${inn.n} has no segments`);
+      for (const seg of inn.seg || []) if (!n.segs.includes(seg)) fail(`${s.id}: segment ${seg} not carried by ${inn.n} (${n.segs})`);
+    }
+    // a whole organ needs nerves and arteries; parts (heart chambers, valves) may inherit them from the whole
+    if (!s.partOf && !s.nerves.length) fail(`${s.id} has no innervation`);
+    if (!s.partOf && !s.arteries.length) fail(`${s.id} has no arterial supply`);
+    for (const a of s.arteries) if (byId[a]?.type !== 'artery') fail(`${s.id}: ${a} is not an artery`);
+    for (const v of s.veins) if (byId[v]?.type !== 'vein') fail(`${s.id}: ${v} is not a vein`);
+    if (s.partOf && byId[s.partOf]?.type !== 'organ') fail(`${s.id}: partOf ${s.partOf} is not an organ`);
+    const finite = pt => pt?.length === 3 && pt.every(Number.isFinite);
+    const sh = s.shape || {};
+    const prims = [...(sh.ellipsoids || []), ...(sh.spheres || []), ...(sh.tubes || []), ...(sh.rings || [])];
+    if (!prims.length) fail(`${s.id} has no 3D shape`);
+    for (const [c, size, axis] of sh.ellipsoids || []) if (!finite(c) || !finite(size) || (axis && !finite(axis))) fail(`${s.id} has a broken ellipsoid`);
+    for (const [c, r] of sh.spheres || []) if (!finite(c) || !(r > 0)) fail(`${s.id} has a broken sphere`);
+    for (const [pts, r] of sh.tubes || []) if (pts.length < 2 || !pts.every(finite) || !(r > 0)) fail(`${s.id} has a broken tube`);
+    for (const [c, r, nrm] of sh.rings || []) if (!finite(c) || !(r > 0) || !finite(nrm)) fail(`${s.id} has a broken ring`);
+  }
+  if (s.type === 'vein') {
+    if (!hasPath(s)) fail(`${s.id} has no path`);
+    if (!s.parents.length) fail(`${s.id} drains nowhere`);
+    for (const p of s.parents) if (!['vein', 'organ'].includes(byId[p]?.type)) fail(`${s.id}: drains into ${p}, which is not a vein or organ`);
+  }
   if (s.type === 'muscle' && s.shape?.fibers?.some(f => f.length < 2 || f.some(pt => pt.length !== 3 || !pt.every(Number.isFinite)))) fail(`${s.id} has a broken fibre`);
 }
 ok(`${structures.length} structures, ${relations.length} relations checked`);
@@ -151,16 +186,48 @@ expect('sn_thoracic', { rectus_abdominis: 'paralysed', serratus_posterior_superi
 expect('n_iliohypogastric', { internal_oblique: 'weakened' });
 expect('n_subcostal', { quadratus_lumborum: 'weakened' });
 
-// Quiz: every generated question has 4 distinct options including the answer, all from the region.
-const { makeQuestion, QUIZ_TYPES } = await import('../js/quiz.js');
+// thorax: organs lose sympathetic, parasympathetic or sensory supply
+function expectOrgans(nerve, expectations) {
+  const res = computeLesion(nerve);
+  const organs = Object.fromEntries(res.organs.map(o => [o.id, o]));
+  for (const [organ, want] of Object.entries(expectations)) {
+    const o = organs[organ];
+    const [status, kinds] = Array.isArray(want) ? want : [want, {}];
+    const got = o?.status || 'unaffected';
+    if (got !== status) fail(`lesion ${nerve}: ${organ} expected ${status}, got ${got}`);
+    for (const [kind, k] of Object.entries(kinds)) if (o?.kinds[kind] !== k) fail(`lesion ${nerve}: ${organ} ${kind} expected ${k}, got ${o?.kinds[kind]}`);
+  }
+  ok(`lesion ${nerve}: ${res.organs.length} organs affected`);
+}
+
+expectOrgans('n_vagus', {
+  heart: ['partial', { parasympathetic: 'lost' }], oesophagus_thoracic: ['partial', { parasympathetic: 'lost', sympathetic: undefined }],
+  lung_right: ['partial', { parasympathetic: 'lost' }], thymus: ['partial', { parasympathetic: 'lost' }], pericardium: 'unaffected'
+});
+expectOrgans('n_sympathetic_trunk', { heart: ['partial', { sympathetic: 'lost' }], trachea: ['partial', { sympathetic: 'lost' }], pericardium: 'unaffected' });
+expectOrgans('n_cardiac_plexus', { heart: 'denervated', conducting_system: 'denervated', lung_right: 'unaffected', oesophagus_thoracic: 'unaffected' });
+expectOrgans('n_recurrent_laryngeal_left', {
+  trachea: ['partial', { parasympathetic: 'reduced' }], oesophagus_thoracic: ['partial', { parasympathetic: 'reduced' }], heart: 'unaffected'
+});
+expectOrgans('n_phrenic', { pericardium: 'denervated', pleura: ['partial', { sensory: 'reduced' }], heart: 'unaffected' });
+expect('n_phrenic', { diaphragm: 'paralysed' });
+expectOrgans('n_greater_splanchnic', { heart: 'unaffected', lung_left: 'unaffected', oesophagus_thoracic: 'unaffected' });
+expectOrgans('n_intercostal_upper', { pleura: ['partial', { sensory: 'reduced' }] });
+
+// Quiz: every generated question has 4 distinct options including the answer, all from the region
+// (or its context structures).
+const { makeQuestion, quizTypesFor } = await import('../js/quiz.js');
 let badQuiz = 0, count = 0;
-for (const region of BODY_REGIONS.filter(r => r.available).map(r => r.id)) {
-  for (const type of QUIZ_TYPES) {
+for (const r of BODY_REGIONS.filter(r => r.available)) {
+  const region = r.id;
+  const local = id => byId[id].region === region || (r.context || []).includes(id);
+  if (r.organGroups && !quizTypesFor(region).includes('supply')) fail(`quiz ${region}: no organ supply questions`);
+  for (const type of quizTypesFor(region)) {
     for (const lang of ['en', 'de']) {
       for (let i = 0; i < 300; i++, count++) {
         const q = makeQuestion(type, lang, region);
         const ids = q.options.map(o => o.id);
-        if (ids.length !== 4 || new Set(ids).size !== 4 || !ids.includes(q.answer) || ids.some(id => byId[id].region !== region)) {
+        if (ids.length !== 4 || new Set(ids).size !== 4 || !ids.includes(q.answer) || !ids.every(local)) {
           if (badQuiz++ < 5) console.error(`FAIL quiz ${region}/${type}/${lang}: ${ids.join(',')} answer ${q.answer}`);
         }
       }
