@@ -1,6 +1,6 @@
 import { structures, byId, relations, BODY_REGIONS, regionById, formatSegs } from './data.js';
-import { UI } from './i18n.js';
-import { computeLesion, ancestors } from './lesion.js';
+import { UI, sideText } from './i18n.js';
+import { computeLesion, ancestors, isLesionable, lesionHits } from './lesion.js';
 import { makeQuestion, quizTypesFor } from './quiz.js';
 import { Viewer } from './viewer3d.js';
 import { Graph } from './graph.js';
@@ -37,7 +37,7 @@ const kindLabel = kind => t().kinds[kind] || kind;
 const viewer = new Viewer($('#viewer'), {
   onPick: id => {
     if (!id) return;
-    if (state.mode === 'lesion') { if (byId[id].type === 'nerve') setLesion(id); else select(id, { keepMode: true }); }
+    if (state.mode === 'lesion') { if (isLesionable(id)) setLesion(id); else select(id, { keepMode: true }); }
     else if (state.mode === 'explore') select(id);
   },
   onHover: (id, e) => {
@@ -54,7 +54,7 @@ const viewer = new Viewer($('#viewer'), {
 
 const graph = new Graph($('#graph'), {
   onPick: id => {
-    if (state.mode === 'lesion' && byId[id].type === 'nerve') setLesion(id);
+    if (state.mode === 'lesion' && isLesionable(id)) setLesion(id);
     else if (state.mode !== 'quiz') select(id, { keepGraph: true });
   }
 });
@@ -72,8 +72,8 @@ function applyStaticText() {
   if (state.region) {
     $('[data-graph="plexus"]').textContent = region().plexus[state.lang];
     if (region().plexusTargets) $('[data-graph="plexusMuscles"]').textContent = region().plexusTargets[state.lang];
-    // Organ and vein toggles only where the region has them.
-    for (const type of ['organ', 'vein']) $(`[data-layer="${type}"]`).closest('label').hidden = !regionHas(type);
+    // Muscle, organ, vein and CNS toggles only where the region has them.
+    for (const type of ['muscle', 'organ', 'vein', 'brain', 'tract', 'function']) $(`[data-layer="${type}"]`).closest('label').hidden = !regionHas(type);
   }
   renderRegions();
   renderLegend();
@@ -91,12 +91,15 @@ function renderLegend() {
   const L = t();
   const item = (cls, label) => `<span><span class="dot ${cls}"></span>${esc(label)}</span>`;
   const organs = state.region && regionHas('organ');
+  const cns = state.region && regionHas('function');
   $('#legend').innerHTML = state.mode === 'lesion'
-    ? item('lesion', L.lesion) + (organs
-      ? item('paralysed', `${L.paralysed} / ${L.denervated}`) + item('weakened', `${L.weakened} / ${L.partial}`)
-      : item('paralysed', L.paralysed) + item('weakened', L.weakened)) + item('spared', L.unaffected)
-    : ['organ', 'bone', 'muscle', 'nerve', 'artery', 'vein']
-      .filter(k => ['bone', 'muscle', 'nerve', 'artery'].includes(k) || (state.region && regionHas(k)))
+    ? item('lesion', L.lesion) + (cns
+      ? item('paralysed', L.fnLost) + item('weakened', L.fnPartial)
+      : organs
+        ? item('paralysed', `${L.paralysed} / ${L.denervated}`) + item('weakened', `${L.weakened} / ${L.partial}`)
+        : item('paralysed', L.paralysed) + item('weakened', L.weakened)) + item('spared', L.unaffected)
+    : ['organ', 'brain', 'tract', 'function', 'bone', 'muscle', 'nerve', 'artery', 'vein']
+      .filter(k => (!cns && ['bone', 'muscle', 'nerve', 'artery'].includes(k)) || (state.region && regionHas(k)))
       .map(k => item(k, L[k])).join('');
 }
 
@@ -119,9 +122,21 @@ function regionGroups(r, prefix) {
     groups.push([label[state.lang], structures.filter(s => s.region === r.id && s.type === 'nerve' && s.group === g)]);
   }
   groups.push([`${L.nerve}: ${L.fromOtherRegions}`, ctxOf('nerve')]);
+  // Neuroanatomy: brain structures, tracts and functions. In lesion mode only what interrupts a
+  // mapped function is listed (plus the arteries), ahead of the cranial and spinal nerves.
+  const cns = [];
+  const keep = list => state.mode === 'lesion' ? list.filter(s => isLesionable(s.id)) : list;
+  for (const [key, label] of r.brainGroups || []) cns.push([label[state.lang], keep(of('brain', key))]);
+  for (const [key, label] of r.tractGroups || []) cns.push([`${L.tract}: ${label[state.lang]}`, keep(of('tract', key))]);
+  if (state.mode === 'lesion' && r.functionGroups) {
+    cns.push([L.artery, keep([...of('artery'), ...ctxOf('artery')])]);
+    groups.unshift(...cns);
+  }
   if (state.mode !== 'lesion') {
     const nerveCount = groups.length;
     for (const [key, label] of r.organGroups || []) groups.push([`${L.organ}: ${label[state.lang]}`, of('organ', key)]);
+    groups.push(...cns);
+    for (const [key, label] of r.functionGroups || []) groups.push([`${L.function}: ${label[state.lang]}`, of('function', key)]);
     for (const [key, label] of Object.entries(r.muscleGroups)) groups.push([`${L.muscle}: ${label[state.lang]}`, of('muscle', key)]);
     groups.push([`${L.muscle}: ${L.fromOtherRegions}`, ctxOf('muscle')]);
     groups.push([L.bone, [...of('bone'), ...ctxOf('bone')]]);
@@ -156,11 +171,54 @@ function relatedIds(id) {
     if (r.to === id) out.add(r.from);
   }
   const s = byId[id];
-  if (s.type === 'nerve' || s.type === 'artery' || s.type === 'vein') for (const a of ancestors(id)) out.add(a);
+  if (['nerve', 'artery', 'vein', 'tract'].includes(s.type)) for (const a of ancestors(id)) out.add(a);
   if (s.type === 'muscle' || s.type === 'organ') for (const inn of s.nerves) for (const a of ancestors(inn.n)) out.add(a);
   if (s.type === 'organ') for (const art of s.arteries) for (const a of ancestors(art)) out.add(a);
   out.delete(id);
   return [...out];
+}
+
+// Arteries whose own territory (not that of their branches) covers a CNS structure.
+const territoryCache = new Map();
+function suppliedBy(id) {
+  return structures.filter(a => a.type === 'artery' && a.territory?.length).filter(a => {
+    if (!territoryCache.has(a.id)) territoryCache.set(a.id, new Set(a.territory.flatMap(x => [...lesionHits(x)])));
+    return territoryCache.get(a.id).has(id);
+  }).map(a => a.id);
+}
+
+// Rows for brain structures, tracts and functions: the pathway links and the side of the deficit.
+function cnsRows(s) {
+  const L = t();
+  const row = (label, ids) => ids.length ? `<dt>${label}</dt><dd>${ids.map(link).join(', ')}</dd>` : '';
+  const sideItem = (id, f, side, partial) =>
+    `<li>${link(id)} <span class="note">(${esc(sideText(L, f, side))}${partial ? `, ${esc(L.partly)}` : ''})</span></li>`;
+  const sideList = (label, items) => items.length ? `<dt>${label}</dt><dd><ul>${items.join('')}</ul></dd>` : '';
+  const from = type => relations.filter(r => r.type === type && r.to === s.id).map(r => r.from);
+  if (s.type === 'function') {
+    return sideList(L.pathway, [...(s.partOf ? [[s.partOf, s.self, s.selfPartial]] : []), ...s.via].map(([x, side, p]) => sideItem(x, s, side, p)))
+      + row(L.suppliedBy, suppliedBy(s.id));
+  }
+  // Functions served: pathway links, and the cortical or nuclear representation for brain structures.
+  const serves = [
+    ...structures.filter(f => f.type === 'function' && f.partOf === s.id).map(f => sideItem(f.id, f, f.self, f.selfPartial)),
+    ...relations.filter(r => r.type === 'serves' && r.from === s.id).map(r => sideItem(r.to, byId[r.to], r.side, r.partial))
+  ];
+  if (s.type === 'tract') {
+    return row(L.branchOf, s.parents)
+      + row(L.continuesAs, structures.filter(x => x.type === 'tract' && x.parents.includes(s.id)).map(x => x.id))
+      + row(L.runsThrough, s.through)
+      + row(L.suppliedBy, suppliedBy(s.id))
+      + sideList(L.serves, serves);
+  }
+  return (s.partOf ? row(L.partOf, [s.partOf]) : '')
+    + row(L.parts, structures.filter(x => x.type === 'brain' && x.partOf === s.id).map(x => x.id))
+    + row(L.carries, from('passes'))
+    + row(L.fibresTo, s.nerves || [])
+    + row(L.drainsInto, s.drains || [])
+    + row(L.tributaries, from('drains'))
+    + row(L.suppliedBy, suppliedBy(s.id))
+    + sideList(L.serves, serves);
 }
 
 function renderExploreCard() {
@@ -202,6 +260,9 @@ function renderExploreCard() {
       ${receives.length ? `<dt>${L.tributaries}</dt><dd>${receives.map(link).join(', ')}</dd>` : ''}
     </dl>`;
     if (s.lesion) body += `<div class="clinical"><strong>${L.clinical}:</strong> ${esc(s.lesion[lang])}</div>`;
+  } else if (s.type === 'brain' || s.type === 'tract' || s.type === 'function') {
+    body += `<p>${esc(s.info[lang])}</p><dl>${cnsRows(s)}</dl>`;
+    if (s.lesion) body += `<div class="clinical"><strong>${L.ifInjured}:</strong> ${esc(s.lesion[lang])}</div>`;
   } else {
     body += `<p>${esc(s.info[lang])}</p><dl>`;
     if (s.type === 'nerve' || s.type === 'artery') {
@@ -227,7 +288,7 @@ function renderExploreCard() {
   }
 
   const actions = [`<button data-action="focus">${L.focus}</button>`];
-  if (s.type === 'nerve') actions.push(`<button class="primary" data-action="simulate">${L.lesion} ✂</button>`);
+  if (isLesionable(s.id)) actions.push(`<button class="primary" data-action="simulate">${L.lesion} ✂</button>`);
   $('#card').innerHTML = header + body + `<div class="actions">${actions.join('')}</div>`;
 }
 
@@ -235,7 +296,8 @@ function renderExploreCard() {
 function renderLesionCard() {
   const L = t(), lang = state.lang;
   const organRegion = regionHas('organ') && !regionHas('muscle');
-  if (!state.lesion) { $('#card').innerHTML = `<p>${esc(organRegion ? L.lesionIntroOrgans : L.lesionIntro)}</p>`; return; }
+  const cnsRegion = regionHas('function');
+  if (!state.lesion) { $('#card').innerHTML = `<p>${esc(cnsRegion ? L.lesionIntroCNS : organRegion ? L.lesionIntroOrgans : L.lesionIntro)}</p>`; return; }
   const n = byId[state.lesion];
   const res = computeLesion(n.id);
   const via = details => details.filter(d => d.lost.length).map(d => `${L.via} ${esc(byId[d.nerve].name[lang])}: ${segs(d.lost)} ${L.lost}`).join('; ');
@@ -247,26 +309,36 @@ function renderLesionCard() {
     const kinds = Object.entries(o.kinds).map(([k, v]) => `${esc(kindLabel(k))} ${v === 'lost' ? L.lost : L.reduced}`).join(', ');
     return `<li><a href="#" data-id="${o.id}" class="${status === 'denervated' ? 'paralysed' : 'weakened'}">${esc(byId[o.id].name[lang])}</a> <b>${kinds}</b> <span class="note">${via(o.details)}</span></li>`;
   }).join('');
+  // Central functions: side relative to the lesion, and the links of the pathway that were hit.
+  const fnList = status => res.functions.filter(f => f.status === status).map(f => {
+    const fn = byId[f.id];
+    const hit = f.via.map(x => esc((x === f.id ? byId[fn.partOf] || fn : byId[x]).name[lang])).join(', ');
+    return `<li><a href="#" data-id="${f.id}" class="${status === 'lost' ? 'paralysed' : 'weakened'}">${esc(fn.name[lang])}</a> <b>${esc(sideText(L, fn, f.side))}</b> <span class="note">${L.via} ${hit}</span></li>`;
+  }).join('');
   const paralysed = list('paralysed'), weakened = list('weakened');
   const denervated = organList('denervated'), partial = organList('partial');
-  const none = organRegion ? L.noOrgans : L.noMuscles;
-  $('#card').innerHTML = `<span class="badge nerve">${esc(L.lesion)} ✂</span>
+  const fnLost = fnList('lost'), fnPartial = fnList('partial');
+  const none = cnsRegion ? L.noFunctions : organRegion ? L.noOrgans : L.noMuscles;
+  $('#card').innerHTML = `<span class="badge ${n.type}">${esc(L.lesion)} ✂</span>
     <h2>${esc(n.name[lang])}</h2>
-    <div class="names">${esc(n.name[other()])} · <span class="la">${esc(n.name.la)}</span> · ${segs(n.segs)}</div>
+    <div class="names">${esc(n.name[other()])} · <span class="la">${esc(n.name.la)}</span>${n.segs ? ` · ${segs(n.segs)}` : ''}</div>
     ${n.lesion ? `<div class="clinical"><strong>${L.clinical}:</strong> ${esc(n.lesion[lang])}</div>` : `<p>${esc(n.info[lang])}</p>`}
     <dl class="status-list">
+      ${fnLost ? `<dt>${L.lostFunctions}</dt><dd><ul>${fnLost}</ul></dd>` : ''}
+      ${fnPartial ? `<dt>${L.partialFunctions}</dt><dd><ul>${fnPartial}</ul></dd>` : ''}
       ${paralysed ? `<dt>${L.paralysed}</dt><dd><ul>${paralysed}</ul></dd>` : ''}
       ${weakened ? `<dt>${L.weakened}</dt><dd><ul>${weakened}</ul></dd>` : ''}
       ${denervated ? `<dt>${L.denervated}</dt><dd><ul>${denervated}</ul></dd>` : ''}
       ${partial ? `<dt>${L.partial}</dt><dd><ul>${partial}</ul></dd>` : ''}
-      ${!paralysed && !weakened && !denervated && !partial ? `<p>${none}</p>` : ''}
-    </dl>`;
+      ${!paralysed && !weakened && !denervated && !partial && !fnLost && !fnPartial ? `<p>${none}</p>` : ''}
+    </dl>
+    ${fnLost || fnPartial ? `<p class="note">${esc(L.sideNote)}</p>` : ''}`;
 }
 
 // ------------------------------------------------------------------ quiz card
 function newQuestion() {
   if (!quizTypesFor(state.region).includes(state.quiz.type)) state.quiz.type = 'name';
-  state.quiz.q =makeQuestion(state.quiz.type, state.lang, state.region);
+  state.quiz.q = makeQuestion(state.quiz.type, state.lang, state.region);
   state.quiz.picked = null;
   const q = state.quiz.q;
   // Lesion questions show only the cut nerve; the paralysis pattern is revealed after answering.
@@ -279,7 +351,7 @@ function newQuestion() {
 
 function renderQuizCard() {
   const L = t(), z = state.quiz, q = z.q;
-  const labels = { name: L.qName, nerve: L.qNerve, lesion: L.qLesion, translate: L.qTranslate, function: L.qFunction, supply: L.qSupply };
+  const labels = { name: L.qName, nerve: L.qNerve, lesion: L.qLesion, translate: L.qTranslate, function: L.qFunction, supply: L.qSupply, cns: L.qCns };
   const types = quizTypesFor(state.region).map(k => `<button data-quiz="${k}" class="${k === z.type ? 'active' : ''}">${esc(labels[k])}</button>`).join('');
   const answered = z.picked !== null;
   const opts = q.options.map(o => {
@@ -423,7 +495,7 @@ document.addEventListener('click', e => {
   else if (d.action === 'focus') viewer.focus(state.selected);
   else if (d.action === 'simulate') { setMode('lesion'); setLesion(state.selected); }
   else if (d.id) {
-    if (state.mode === 'lesion' && byId[d.id].type === 'nerve' && !el.closest('#card')) setLesion(d.id);
+    if (state.mode === 'lesion' && isLesionable(d.id) && !el.closest('#card')) setLesion(d.id);
     else if (state.mode === 'lesion' && el.closest('#card')) select(d.id, { keepMode: false });
     else select(d.id);
   }

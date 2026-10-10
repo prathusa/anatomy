@@ -22,9 +22,85 @@ export function ancestors(id) {
 
 export const lesionableNerves = structures.filter(s => s.type === 'nerve');
 
+// Central nervous system (neuroanatomy). A `function` (e.g. voluntary movement of the leg) lists the
+// chain that serves it in `via: [[id, side, 'partial'?]]`: tracts, nuclei, cranial nerves. `side` is
+// where the deficit appears relative to a one-sided lesion of that link: 'ipsi', 'contra' or 'both';
+// 'partial' marks links whose loss is compensated (bilateral cortical supply, parallel pathways).
+// The function node itself is its cortical (or nuclear) representation, with side `self`.
+// A lesion hits:
+//   tract     -> the tract
+//   brain     -> the structure, its parts (partOf, recursively) and every tract running `through` them
+//   artery    -> its `territory` (each entry expanded as above) and that of its branches, except
+//                branches with a `collateral` supply (e.g. the basilar artery from both vertebrals)
+//   nerve     -> the nerve (plus the peripheral model above)
+// A lesion of a midline structure (optic chiasm, basilar artery) gives deficits on both sides.
+const functionNodes = structures.filter(s => s.type === 'function');
+const kidsOf = {};
+for (const s of structures) {
+  if (s.partOf) (kidsOf[s.partOf] ||= []).push(s.id);
+  for (const t of s.through || []) (kidsOf['through:' + t] ||= []).push(s.id);
+  if (s.type === 'artery') for (const p of s.parents) (kidsOf['branch:' + p] ||= []).push(s.id);
+}
+
+export function lesionHits(id) {
+  const out = new Set();
+  const site = x => {
+    if (out.has(x)) return;
+    out.add(x);
+    for (const k of kidsOf[x] || []) site(k);
+    for (const t of kidsOf['through:' + x] || []) out.add(t);
+  };
+  const artery = (a, seen = new Set()) => {
+    if (seen.has(a)) return;
+    seen.add(a);
+    for (const t of byId[a].territory || []) site(t);
+    for (const b of kidsOf['branch:' + a] || []) if (!byId[b].collateral) artery(b, seen);
+  };
+  const s = byId[id];
+  if (s.type === 'artery') artery(id);
+  else if (s.type === 'brain' || s.type === 'function') site(id);
+  else out.add(id);
+  return out;
+}
+
+// Structures a lesion can be simulated on: every nerve, plus tracts, brain structures and arteries
+// whose lesion interrupts at least one mapped function.
+const servesCache = new Map();
+export function isLesionable(id) {
+  const s = byId[id];
+  if (!s) return false;
+  if (s.type === 'nerve') return true;
+  if (!['tract', 'brain', 'artery'].includes(s.type)) return false;
+  if (!servesCache.has(id)) servesCache.set(id, centralDeficits(id).functions.length > 0);
+  return servesCache.get(id);
+}
+
+function centralDeficits(id) {
+  const hits = lesionHits(id);
+  const midline = !!byId[id].midline;
+  const functions = [];
+  for (const f of functionNodes) {
+    const links = [[f.id, f.self, f.selfPartial ? 'partial' : undefined], ...f.via].filter(([x]) => hits.has(x));
+    if (!links.length) continue;
+    const sides = new Set(links.map(([, side]) => midline ? 'both' : side));
+    functions.push({
+      id: f.id,
+      status: links.some(([, , p]) => p !== 'partial') ? 'lost' : 'partial',
+      side: sides.size > 1 ? 'both' : [...sides][0],
+      via: links.map(([x]) => x)
+    });
+  }
+  // The rest of each interrupted pathway (tracts, nuclei, nerves), shown as cut.
+  const chain = new Set();
+  for (const d of functions) for (const [x] of byId[d.id].via) if (!hits.has(x)) chain.add(x);
+  return { hits: [...hits], functions, chain: [...chain] };
+}
+
 export function computeLesion(nerveId) {
   const lesioned = byId[nerveId];
-  if (!lesioned || lesioned.type !== 'nerve') return null;
+  if (!lesioned || !isLesionable(nerveId)) return null;
+  const central = centralDeficits(nerveId);
+  if (lesioned.type !== 'nerve') return { nerve: nerveId, muscles: [], organs: [], nerves: central.chain, ...central };
   const segN = new Set(lesioned.segs);
 
   const lostOf = inn => inn.n === nerveId ? [...inn.seg]
@@ -61,5 +137,5 @@ export function computeLesion(nerveId) {
     .filter(n => n.id === nerveId || (ancestors(n.id).has(nerveId) && n.segs.some(s => segN.has(s))))
     .map(n => n.id);
 
-  return { nerve: nerveId, muscles, organs, nerves };
+  return { nerve: nerveId, muscles, organs, nerves: [...nerves, ...central.chain], hits: central.hits, functions: central.functions };
 }

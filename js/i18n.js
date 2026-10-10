@@ -31,7 +31,7 @@ export const UI = {
     correct: 'Correct!', wrong: 'Not quite. Correct answer:', next: 'Next question', score: 'Score',
     disclaimer: 'Learning aid only, not for clinical decisions. The 3D model is schematic. Segment values follow common textbooks (Moore, Prometheus) and vary by about one segment between sources; check against your course atlas.',
     sourceNote: 'Open source · code MIT · content CC BY 4.0',
-    types: { bone: 'Bone', muscle: 'Muscle', nerve: 'Nerve', artery: 'Artery', organ: 'Organ', vein: 'Vein' },
+    types: { bone: 'Bone', muscle: 'Muscle', nerve: 'Nerve', artery: 'Artery', organ: 'Organ', vein: 'Vein', brain: 'CNS structure', tract: 'Tract', function: 'Function' },
     showNames: 'Names',
     organ: 'Organs', vein: 'Veins',
     kinds: { sympathetic: 'Sympathetic', parasympathetic: 'Parasympathetic', sensory: 'Sensory' },
@@ -42,7 +42,22 @@ export const UI = {
     lesionIntroOrgans: 'Pick a nerve, trunk or plexus to cut. Organs whose autonomic or sensory supply is completely lost turn red, partly affected organs orange. The vagus carries the token CN X.',
     qSupply: 'Which artery / nerve supplies this organ?',
     qSupplyArteryAsk: o => `Which artery supplies <b>${o}</b>?`,
-    qSupplyNerveAsk: o => `Which nerve supplies <b>${o}</b>?`
+    qSupplyNerveAsk: o => `Which nerve supplies <b>${o}</b>?`,
+    // Neuroanatomy: CNS structures, tracts, functions and central lesions
+    brain: 'Brain and cord', tract: 'Tracts', function: 'Functions',
+    sides: { ipsi: 'ipsilateral', contra: 'contralateral', both: 'both sides', dominant: 'if in the dominant hemisphere' },
+    eyeSides: { ipsi: 'ipsilateral eye', contra: 'contralateral eye', both: 'both eyes' },
+    fnLost: 'Lost', fnPartial: 'Impaired', partly: 'partly',
+    lostFunctions: 'Functions lost', partialFunctions: 'Functions impaired (partly compensated)',
+    noFunctions: 'No mapped function is affected in this model.',
+    sideNote: 'Sides are relative to the lesion. Each pathway is drawn for the left half of the body, so its cortex lies in the right hemisphere; language sits in the left (dominant) hemisphere.',
+    lesionIntroCNS: 'Pick a tract, a brain structure or an artery to lesion. The model follows the pathway of each function (cortex, tracts, nuclei, cranial nerves) and shows which functions are lost (red) or impaired (orange), and on which side relative to the lesion. Try the thoracic cord (Brown-Séquard), the internal capsule, PICA (Wallenberg) or the optic chiasm.',
+    pathway: 'Pathway (side of the deficit if this link is cut)', serves: 'Serves', runsThrough: 'Runs through',
+    carries: 'Tracts passing through', continuesAs: 'Continues as', fibresTo: 'Fibres to', suppliedBy: 'Supplied by',
+    hitBy: 'Hit by the lesion', territory: 'Territory',
+    qCns: 'Central lesions',
+    qCnsLostAsk: s => `Lesion of the <b>${s}</b>. Which of these functions is lost?`,
+    qCnsSiteAsk: 'Where is the lesion? Deficits, with sides relative to the lesion:'
   },
   de: {
     title: 'Anatomie',
@@ -75,7 +90,7 @@ export const UI = {
     correct: 'Richtig!', wrong: 'Leider falsch. Richtige Antwort:', next: 'Nächste Frage', score: 'Punkte',
     disclaimer: 'Nur als Lernhilfe, nicht für klinische Entscheidungen. Das 3D-Modell ist schematisch. Die Segmentangaben folgen gängigen Lehrbüchern (Moore, Prometheus) und weichen je nach Quelle um etwa ein Segment ab; bitte mit dem Atlas aus dem Kurs abgleichen.',
     sourceNote: 'Open Source · Code MIT · Inhalte CC BY 4.0',
-    types: { bone: 'Knochen', muscle: 'Muskel', nerve: 'Nerv', artery: 'Arterie', organ: 'Organ', vein: 'Vene' },
+    types: { bone: 'Knochen', muscle: 'Muskel', nerve: 'Nerv', artery: 'Arterie', organ: 'Organ', vein: 'Vene', brain: 'ZNS-Struktur', tract: 'Bahn', function: 'Funktion' },
     showNames: 'Namen',
     organ: 'Organe', vein: 'Venen',
     kinds: { sympathetic: 'Sympathisch', parasympathetic: 'Parasympathisch', sensory: 'Sensibel' },
@@ -87,6 +102,25 @@ export const UI = {
     qSupply: 'Welche Arterie / welcher Nerv versorgt das Organ?',
     // Organ names carry no article, so the organ leads the question instead of sitting inside the sentence.
     qSupplyArteryAsk: o => `<b>${o}</b>: Welche Arterie ist an der Blutversorgung beteiligt?`,
-    qSupplyNerveAsk: o => `<b>${o}</b>: Welcher Nerv ist an der Innervation beteiligt?`
+    qSupplyNerveAsk: o => `<b>${o}</b>: Welcher Nerv ist an der Innervation beteiligt?`,
+    brain: 'Gehirn und Rückenmark', tract: 'Bahnen', function: 'Funktionen',
+    sides: { ipsi: 'ipsilateral', contra: 'kontralateral', both: 'beidseits', dominant: 'bei Läsion der dominanten Hemisphäre' },
+    eyeSides: { ipsi: 'ipsilaterales Auge', contra: 'kontralaterales Auge', both: 'beide Augen' },
+    fnLost: 'Ausgefallen', fnPartial: 'Beeinträchtigt', partly: 'teilweise',
+    lostFunctions: 'Ausgefallene Funktionen', partialFunctions: 'Beeinträchtigte Funktionen (teilweise kompensiert)',
+    noFunctions: 'In diesem Modell ist keine der abgebildeten Funktionen betroffen.',
+    sideNote: 'Seitenangaben beziehen sich auf die Seite der Läsion. Jede Bahn ist für die linke Körperhälfte gezeichnet, ihr Kortex liegt also in der rechten Hemisphäre; die Sprache liegt in der linken (dominanten) Hemisphäre.',
+    lesionIntroCNS: 'Wähle eine Bahn, eine Hirnstruktur oder eine Arterie für eine Läsion. Das Modell verfolgt die Bahn jeder Funktion (Kortex, Bahnen, Kerne, Hirnnerven) und zeigt, welche Funktionen ausfallen (rot) oder beeinträchtigt sind (orange) und auf welcher Seite, bezogen auf die Läsion. Probiere das Brustmark (Brown-Séquard), die Capsula interna, die PICA (Wallenberg) oder das Chiasma opticum.',
+    pathway: 'Bahn (Seite des Ausfalls bei Läsion dieses Abschnitts)', serves: 'Dient', runsThrough: 'Verläuft durch',
+    carries: 'Durchziehende Bahnen', continuesAs: 'Setzt sich fort als', fibresTo: 'Fasern zu', suppliedBy: 'Versorgt von',
+    hitBy: 'Von der Läsion betroffen', territory: 'Versorgungsgebiet',
+    qCns: 'Zentrale Läsionen',
+    qCnsLostAsk: s => `Läsion: <b>${s}</b>. Welche dieser Funktionen fällt aus?`,
+    qCnsSiteAsk: 'Wo liegt die Läsion? Ausfälle, Seiten bezogen auf die Läsion:'
   }
 };
+
+// Side of a central deficit, relative to the lesion. Visual field functions name the eye.
+export function sideText(L, f, side) {
+  return (f.sideOf === 'eye' && L.eyeSides[side]) || L.sides[side] || side;
+}

@@ -1,7 +1,7 @@
 // Question generators. Each returns { ask, detail?, options: [{id, label}], answer, highlight? }.
 import { structures, byId, regionById } from './data.js';
-import { computeLesion } from './lesion.js';
-import { UI } from './i18n.js';
+import { computeLesion, isLesionable } from './lesion.js';
+import { UI, sideText } from './i18n.js';
 
 const pick = arr => arr[Math.floor(Math.random() * arr.length)];
 const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -19,7 +19,10 @@ function poolsFor(region) {
       nerves,
       muscles: all.filter(s => s.type === 'muscle'),
       organs: all.filter(s => s.type === 'organ'),
-      branchNerves: nerves.filter(n => !PLEXUS_PARTS.has(n.group))
+      branchNerves: nerves.filter(n => !PLEXUS_PARTS.has(n.group)),
+      functions: all.filter(s => s.type === 'function'),
+      // Neuroanatomy: brain structures, tracts and arteries whose lesion takes out at least one function.
+      sites: all.filter(s => ['brain', 'tract', 'artery'].includes(s.type) && isLesionable(s.id))
     };
   }
   return pools[region];
@@ -39,14 +42,18 @@ function distractors(answer, pool, n = 3) {
 // in the pool (the pelvis adds a single bone).
 const withPeers = pool => pool.filter(s => pool.filter(x => x.type === s.type).length >= 4);
 
-export const QUIZ_TYPES = ['name', 'nerve', 'lesion', 'translate', 'function', 'supply'];
+export const QUIZ_TYPES = ['name', 'nerve', 'lesion', 'translate', 'function', 'supply', 'cns'];
 
-// Question types that make sense for a region: muscle questions need muscles, supply questions need organs.
+// Question types that make sense for a region: muscle questions need muscles, supply questions need organs,
+// central lesion questions need functions.
 export function quizTypesFor(region) {
-  const { muscles, organs } = poolsFor(region);
+  const { muscles, organs, functions } = poolsFor(region);
   return QUIZ_TYPES.filter(q => ['nerve', 'lesion', 'function'].includes(q) ? muscles.length > 0
-    : q === 'supply' ? organs.length > 0 : true);
+    : q === 'supply' ? organs.length > 0 : q === 'cns' ? functions.length > 0 : true);
 }
+
+// Deficit pattern of a central lesion, to tell lesion sites apart.
+const signature = res => res.functions.map(f => `${f.id}:${f.status}:${f.side}`).sort().join('|');
 
 // Everything up- or downstream of an artery or nerve, which would also count as "supplying" the organ.
 function lineage(id) {
@@ -59,7 +66,7 @@ function lineage(id) {
 
 export function makeQuestion(type, lang, region) {
   const t = UI[lang];
-  const { all, nerves, muscles, organs, branchNerves } = poolsFor(region);
+  const { all, nerves, muscles, organs, branchNerves, functions, sites } = poolsFor(region);
   if (!quizTypesFor(region).includes(type)) type = quizTypesFor(region)[0];
   switch (type) {
     case 'supply': {
@@ -85,8 +92,32 @@ export function makeQuestion(type, lang, region) {
       }
       return makeQuestion('name', lang, region);
     }
+    case 'cns': {
+      // Either "this site is lesioned: which function is lost?" or "these deficits: where is the lesion?".
+      for (let tries = 0; tries < 50; tries++) {
+        const site = pick(sites);
+        const res = computeLesion(site.id);
+        if (Math.random() < 0.5) {
+          const lost = res.functions.filter(f => f.status === 'lost').map(f => byId[f.id]);
+          const hit = new Set(res.functions.map(f => f.id));
+          const spared = functions.filter(f => !hit.has(f.id));
+          if (!lost.length || spared.length < 3) continue;
+          const ans = pick(lost);
+          const opts = shuffle([ans, ...shuffle(spared).slice(0, 3)]);
+          return { ask: t.qCnsLostAsk(site.name[lang]), options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: ans.id, highlight: site.id, lesion: site.id };
+        }
+        const sig = signature(res);
+        const others = sites.filter(x => x.id !== site.id && signature(computeLesion(x.id)) !== sig);
+        if (others.length < 3) continue;
+        const status = { lost: t.fnLost, partial: t.fnPartial };
+        const detail = res.functions.map(f => `${status[f.status]}: ${byId[f.id].name[lang]} (${sideText(t, byId[f.id], f.side)})`).join(' · ');
+        const opts = shuffle([site, ...distractors(site, others)]);
+        return { ask: t.qCnsSiteAsk, detail, options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: site.id, lesion: site.id };
+      }
+      return makeQuestion('name', lang, region);
+    }
     case 'name': {
-      const pool = all.filter(s => ['muscle', 'bone', 'organ', 'vein', 'artery'].includes(s.type)).concat(branchNerves);
+      const pool = all.filter(s => ['muscle', 'bone', 'organ', 'vein', 'artery', 'brain', 'tract'].includes(s.type)).concat(branchNerves);
       const ans = pick(withPeers(pool));
       const opts = shuffle([ans, ...distractors(ans, pool.filter(s => s.type === ans.type))]);
       return { ask: t.qNameAsk, options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: ans.id, highlight: ans.id };

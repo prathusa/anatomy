@@ -13,6 +13,7 @@ import * as thorax from './regions/thorax.js';
 import * as abdomen from './regions/abdomen.js';
 import * as pelvis from './regions/pelvis.js';
 import * as headNeck from './regions/head-neck.js';
+import * as neuro from './regions/neuro.js';
 
 // The whole body, in the planned build order. Only `available` regions have data yet.
 export const BODY_REGIONS = [
@@ -23,11 +24,11 @@ export const BODY_REGIONS = [
   { id: 'abdomen', available: true, name: { en: 'Abdomen', de: 'Abdomen / Bauchsitus' } },
   { id: 'pelvis', available: true, name: { en: 'Pelvis and perineum', de: 'Becken und Damm' } },
   { id: 'head_neck', available: true, name: { en: 'Head and neck', de: 'Kopf und Hals' } },
-  { id: 'neuro', name: { en: 'Neuroanatomy', de: 'Neuroanatomie' } }
+  { id: 'neuro', available: true, name: { en: 'Neuroanatomy', de: 'Neuroanatomie' } }
 ];
 export const regionById = Object.fromEntries(BODY_REGIONS.map(r => [r.id, r]));
 
-const modules = { upper_limb: upperLimb, lower_limb: lowerLimb, back, thorax, abdomen, pelvis, head_neck: headNeck };
+const modules = { upper_limb: upperLimb, lower_limb: lowerLimb, back, thorax, abdomen, pelvis, head_neck: headNeck, neuro };
 
 export const structures = [];
 for (const [region, mod] of Object.entries(modules)) {
@@ -56,9 +57,19 @@ export function formatSegs(all) {
 // Build a flat edge list from the structure fields.
 export const relations = [];
 for (const s of structures) {
-  if (s.type === 'nerve' || s.type === 'artery') {
+  if (s.type === 'nerve' || s.type === 'artery' || s.type === 'tract') {
     for (const p of s.parents) relations.push({ from: p, to: s.id, type: 'branch' });
   }
+  // Neuroanatomy: arterial territories, tracts running through brain structures, nuclei and the
+  // cranial nerves they give fibres to, CSF flow, and the chain serving each function.
+  if (s.type === 'artery') for (const t of s.territory || []) relations.push({ from: s.id, to: t, type: 'supplies' });
+  if (s.type === 'tract') for (const b of s.through) relations.push({ from: s.id, to: b, type: 'passes' });
+  if (s.type === 'brain') {
+    for (const n of s.nerves || []) relations.push({ from: s.id, to: n, type: 'fibres' });
+    for (const d of s.drains || []) relations.push({ from: s.id, to: d, type: 'drains' });
+  }
+  if ((s.type === 'brain' || s.type === 'function') && s.partOf) relations.push({ from: s.id, to: s.partOf, type: 'part' });
+  if (s.type === 'function') for (const [x, side, partial] of s.via) relations.push({ from: x, to: s.id, type: 'serves', side, partial: !!partial });
   if (s.type === 'muscle') {
     for (const inn of s.nerves) relations.push({ from: inn.n, to: s.id, type: 'innervates', seg: inn.seg, note: inn.note });
     for (const a of s.arteries) relations.push({ from: a, to: s.id, type: 'supplies' });

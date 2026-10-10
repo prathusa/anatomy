@@ -3,12 +3,18 @@ import cytoscape from '../vendor/cytoscape.esm.min.mjs';
 import { structures, byId, relations, formatSegs, regionById } from './data.js';
 import { ancestors } from './lesion.js';
 
-const TYPE_COLOR = { bone: '#d9cdb2', muscle: '#c0675a', nerve: '#e6b800', artery: '#d61f2c', organ: '#d98c8c', vein: '#2f5fbf' };
-const EDGE_COLOR = { innervates: '#c9a200', supplies: '#d61f2c', branch: '#555', origin: '#8a8a8a', insertion: '#8a8a8a', drains: '#2f5fbf', part: '#8a8a8a' };
+const TYPE_COLOR = { bone: '#d9cdb2', muscle: '#c0675a', nerve: '#e6b800', artery: '#d61f2c', organ: '#d98c8c', vein: '#2f5fbf',
+  brain: '#c99a90', tract: '#2e9e5b', function: '#22c3a6' };
+const EDGE_COLOR = { innervates: '#c9a200', supplies: '#d61f2c', branch: '#555', origin: '#8a8a8a', insertion: '#8a8a8a', drains: '#2f5fbf', part: '#8a8a8a',
+  serves: '#22c3a6', passes: '#9a7fd1', fibres: '#e6b800' };
 // Organ innervation edges are coloured by fibre kind.
 const KIND_COLOR = { sympathetic: '#e67e22', parasympathetic: '#2e7d32', sensory: '#c9a200' };
 const KIND_SHORT = { en: { sympathetic: 'symp.', parasympathetic: 'parasymp.', sensory: 'sens.' }, de: { sympathetic: 'sympath.', parasympathetic: 'parasympath.', sensory: 'sens.' } };
 const LESION_CLASS = { paralysed: 'paralysed', weakened: 'weakened', denervated: 'paralysed', partial: 'weakened' };
+// Central functions: lost / partly lost, labelled with the side of the deficit relative to the lesion.
+const FN_CLASS = { lost: 'paralysed', partial: 'weakened' };
+const SIDE_SHORT = { en: { ipsi: 'ipsi', contra: 'contra', both: 'both', dominant: 'dom.', partial: 'part.' },
+  de: { ipsi: 'ipsi', contra: 'kontra', both: 'beids.', dominant: 'dom.', partial: 'teilw.' } };
 
 export class Graph {
   constructor(container, { onPick }) {
@@ -32,6 +38,9 @@ export class Graph {
         { selector: 'node[type="artery"]', style: { shape: 'diamond' } },
         { selector: 'node[type="organ"]', style: { shape: 'barrel', width: 22, height: 22 } },
         { selector: 'node[type="vein"]', style: { shape: 'round-diamond' } },
+        { selector: 'node[type="brain"]', style: { shape: 'ellipse', width: 22, height: 22 } },
+        { selector: 'node[type="tract"]', style: { shape: 'round-tag' } },
+        { selector: 'node[type="function"]', style: { shape: 'star', width: 22, height: 22 } },
         { selector: 'node.focus', style: { width: 30, height: 30, 'border-width': 3, 'border-color': '#1f4fbf', 'font-weight': 'bold', 'font-size': 12 } },
         { selector: 'node.paralysed', style: { 'background-color': '#e0182d' } },
         { selector: 'node.weakened', style: { 'background-color': '#ff9a1f' } },
@@ -67,10 +76,12 @@ export class Graph {
 
   edge(r) {
     const typeLabel = this.lang === 'de'
-      ? { origin: 'Ursprung', insertion: 'Ansatz', supplies: '', branch: '', drains: '', part: 'Teil' }
-      : { origin: 'origin', insertion: 'insertion', supplies: '', branch: '', drains: '', part: 'part' };
+      ? { origin: 'Ursprung', insertion: 'Ansatz', supplies: '', branch: '', drains: '', part: 'Teil', passes: '', fibres: '' }
+      : { origin: 'origin', insertion: 'insertion', supplies: '', branch: '', drains: '', part: 'part', passes: '', fibres: '' };
     const segLabel = r.kind ? `${KIND_SHORT[this.lang][r.kind]} ${formatSegs(r.seg)}` : r.seg && formatSegs(r.seg);
-    const label = this.mode !== 'neighbourhood' ? '' : r.type === 'innervates' ? segLabel : typeLabel[r.type];
+    const short = SIDE_SHORT[this.lang];
+    const sideLabel = r.type === 'serves' ? short[r.side] + (r.partial ? ` (${short.partial})` : '') : '';
+    const label = this.mode !== 'neighbourhood' ? '' : r.type === 'innervates' ? segLabel : r.type === 'serves' ? sideLabel : typeLabel[r.type] || '';
     const color = r.kind ? KIND_COLOR[r.kind] : EDGE_COLOR[r.type];
     // The kind is part of the id: one nerve can reach an organ with sympathetic and parasympathetic fibres.
     return { group: 'edges', data: { id: `${r.type}:${r.from}>${r.to}${r.kind ? ':' + r.kind : ''}`, source: r.from, target: r.to, type: r.type, color, label } };
@@ -87,7 +98,7 @@ export class Graph {
     const levels = new Map();
     this.cy.nodes().forEach(n => {
       const s = byId[n.id()];
-      const key = s.type === 'muscle' || s.type === 'organ' ? 'target' : s.group || 'branch';
+      const key = s.type === 'muscle' || s.type === 'organ' || s.type === 'function' ? 'target' : s.group || 'branch';
       levels.set(key, (levels.get(key) || 0) + 1);
     });
     const widest = Math.max(...levels.values());
@@ -111,6 +122,24 @@ export class Graph {
           addNode(byId[r.from]); addNode(byId[r.to]);
           els.push(this.edge(r));
         }
+      }
+    } else if (regionById[this.region]?.functionGroups) {
+      // Neuroanatomy: "pathways" are the region's tracts; "pathways -> functions" adds every link that
+      // serves a function (tracts, nuclei, cranial nerves). A lesion shrinks it to the hit pathways.
+      const fns = structures.filter(f => f.type === 'function' && f.region === this.region);
+      const affected = new Set((this.lesion?.functions || []).map(f => f.id));
+      const keep = this.lesion && this.mode === 'plexusMuscles'
+        ? new Set([...this.lesion.hits, ...this.lesion.nerves, ...affected]) : null;
+      const ok = id => !keep || keep.has(id);
+      structures.filter(x => x.type === 'tract' && x.region === this.region && ok(x.id)).forEach(addNode);
+      if (this.mode === 'plexusMuscles') {
+        for (const f of fns) {
+          if (!ok(f.id)) continue;
+          for (const r of relations) if (r.type === 'serves' && r.to === f.id && ok(r.from)) { addNode(byId[r.from]); addNode(f); els.push(this.edge(r)); }
+        }
+      }
+      for (const r of relations) {
+        if (r.type === 'branch' && ids.has(r.from) && ids.has(r.to)) els.push(this.edge(r));
       }
     } else {
       // With a lesion, "plexus -> muscles" shrinks to the injured pathway so it stays readable.
@@ -140,14 +169,18 @@ export class Graph {
       cy.add(els);
       if (this.focusId && cy.getElementById(this.focusId).nonempty()) cy.getElementById(this.focusId).addClass('focus');
       if (this.lesion) {
-        const st = Object.fromEntries([...this.lesion.muscles, ...this.lesion.organs].map(m => [m.id, LESION_CLASS[m.status]]));
+        const st = Object.fromEntries([
+          ...[...this.lesion.muscles, ...this.lesion.organs].map(m => [m.id, LESION_CLASS[m.status]]),
+          ...(this.lesion.functions || []).map(f => [f.id, FN_CLASS[f.status]])
+        ]);
         const cut = new Set(this.lesion.nerves);
+        const hit = new Set(this.lesion.hits || []);
         cy.nodes().forEach(n => {
           const id = n.id();
-          if (id === this.lesion.nerve) n.addClass('lesion');
+          if (st[id]) n.addClass(st[id]);
+          else if (id === this.lesion.nerve || hit.has(id)) n.addClass('lesion');
           else if (cut.has(id)) n.addClass('cut');
-          else if (st[id]) n.addClass(st[id]);
-          else if (n.data('type') === 'muscle' || n.data('type') === 'organ') n.addClass('spared');
+          else if (['muscle', 'organ', 'function'].includes(n.data('type'))) n.addClass('spared');
         });
       }
     });
@@ -156,16 +189,19 @@ export class Graph {
       ? { name: 'concentric', concentric: n => (n.id() === this.focusId ? 10 : 1), levelWidth: () => 1, minNodeSpacing: 48, animate: false }
       : {
         name: 'breadthfirst', directed: true, animate: false, spacingFactor: 1,
-        // Roots are nerves whose parents are not drawn (a context nerve's parents live in another region).
-        roots: cy.nodes().filter(n => byId[n.id()].type === 'nerve' && byId[n.id()].parents.every(p => !ids.has(p))),
+        // Roots are nerves whose parents are not drawn (a context nerve's parents live in another region);
+        // in the CNS graph every node without an incoming edge.
+        roots: regionById[this.region]?.functionGroups
+          ? cy.nodes().filter(n => n.indegree(false) === 0)
+          : cy.nodes().filter(n => byId[n.id()].type === 'nerve' && byId[n.id()].parents.every(p => !ids.has(p))),
         // Lay out on a canvas wide enough for readable labels; fit() then zooms out and the user zooms in.
         boundingBox: this.plexusBox()
       };
     cy.layout(layout).run();
     // Organs hang off nerves at different depths (trachea straight from the vagus, heart via the cardiac plexus);
     // put every target on the bottom row so they do not sit among the nerves.
-    const targets = cy.nodes().filter(n => ['muscle', 'organ'].includes(n.data('type')));
-    if (this.mode === 'plexusMuscles' && targets.some(n => n.data('type') === 'organ')) {
+    const targets = cy.nodes().filter(n => ['muscle', 'organ', 'function'].includes(n.data('type')));
+    if (this.mode === 'plexusMuscles' && targets.some(n => n.data('type') !== 'muscle')) {
       const box = this.plexusBox(), y = Math.max(...targets.map(n => n.position('y')));
       const row = targets.sort((a, b) => a.position('x') - b.position('x'));
       row.forEach((n, i) => n.position({ x: box.x1 + box.w * (i + 0.5) / row.length, y }));

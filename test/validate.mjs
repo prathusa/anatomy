@@ -1,6 +1,6 @@
 // Data integrity and lesion-model checks. Run: node test/validate.mjs
 import { structures, byId, relations, BODY_REGIONS } from '../js/data.js';
-import { computeLesion } from '../js/lesion.js';
+import { computeLesion, isLesionable } from '../js/lesion.js';
 
 let failures = 0;
 const fail = msg => { failures++; console.error('FAIL', msg); };
@@ -31,6 +31,12 @@ for (const r of BODY_REGIONS.filter(r => r.available)) {
   const organGroups = new Set((r.organGroups || []).map(([g]) => g));
   for (const o of own.filter(s => s.type === 'organ')) if (!organGroups.has(o.group)) fail(`${o.id}: organ group ${o.group} not listed in ${r.id} meta`);
   for (const [g, label] of r.organGroups || []) if (!label?.en || !label?.de) fail(`region ${r.id}: organ group ${g} needs en and de labels`);
+  // neuroanatomy: brain structures, tracts and functions sit in groups listed in the region meta
+  for (const [type, key] of [['brain', 'brainGroups'], ['tract', 'tractGroups'], ['function', 'functionGroups']]) {
+    const groups = new Set((r[key] || []).map(([g]) => g));
+    for (const [g, label] of r[key] || []) if (!label?.en || !label?.de) fail(`region ${r.id}: ${key} ${g} needs en and de labels`);
+    for (const x of own.filter(s => s.type === type)) if (!groups.has(x.group)) fail(`${x.id}: ${type} group ${x.group} not listed in ${r.id} ${key}`);
+  }
   if (r.camera?.target?.length !== 3 || r.camera?.position?.length !== 3) fail(`region ${r.id} has no camera`);
   // context: structures of other regions shown for orientation (bones, and e.g. the phrenic nerve in the thorax)
   for (const id of r.context || []) if (!byId[id] || byId[id].region === r.id) fail(`region ${r.id}: context "${id}" is not a structure of another region`);
@@ -106,6 +112,45 @@ for (const s of structures) {
     for (const p of s.parents) if (!['vein', 'organ'].includes(byId[p]?.type)) fail(`${s.id}: drains into ${p}, which is not a vein or organ`);
   }
   if (s.type === 'muscle' && s.shape?.fibers?.some(f => f.length < 2 || f.some(pt => pt.length !== 3 || !pt.every(Number.isFinite)))) fail(`${s.id} has a broken fibre`);
+  // Neuroanatomy. Clinical notes in both languages; brain structures and functions have a shape.
+  if (['brain', 'tract', 'function', 'artery'].includes(s.type) && s.lesion && (!s.lesion.en || !s.lesion.de)) fail(`${s.id} clinical note needs en and de`);
+  if (s.type === 'brain' || s.type === 'function') {
+    if (!s.info?.en || !s.info?.de) fail(`${s.id} missing info`);
+    const finite = pt => pt?.length === 3 && pt.every(Number.isFinite);
+    const sh = s.shape || {};
+    if (![...(sh.ellipsoids || []), ...(sh.spheres || []), ...(sh.tubes || [])].length) fail(`${s.id} has no 3D shape`);
+    for (const [c, size, axis] of sh.ellipsoids || []) if (!finite(c) || !finite(size) || (axis && !finite(axis))) fail(`${s.id} has a broken ellipsoid`);
+    for (const [c, r] of sh.spheres || []) if (!finite(c) || !(r > 0)) fail(`${s.id} has a broken sphere`);
+    for (const [pts, r] of sh.tubes || []) if (pts.length < 2 || !pts.every(finite) || !(r > 0)) fail(`${s.id} has a broken tube`);
+  }
+  if (s.type === 'brain') {
+    if (s.partOf && byId[s.partOf]?.type !== 'brain') fail(`${s.id}: partOf ${s.partOf} is not a brain structure`);
+    for (const n of s.nerves || []) if (byId[n]?.type !== 'nerve') fail(`${s.id}: fibres to ${n}, which is not a nerve`);
+    for (const d of s.drains || []) if (!['brain', 'vein'].includes(byId[d]?.type)) fail(`${s.id}: drains into ${d}, which is not a brain structure or vein`);
+  }
+  if (s.type === 'tract') {
+    if (!hasPath(s) || !(s.r > 0)) fail(`${s.id} has no path`);
+    // a tract continues another tract or a cranial nerve (optic nerve -> chiasm)
+    for (const p of s.parents) if (!['tract', 'nerve'].includes(byId[p]?.type)) fail(`${s.id}: parent ${p} is not a tract or nerve`);
+    if (!Array.isArray(s.through)) fail(`${s.id}: through must be a list`);
+    for (const b of s.through || []) if (byId[b]?.type !== 'brain') fail(`${s.id}: runs through ${b}, which is not a brain structure`);
+  }
+  if (s.type === 'function') {
+    const SIDES = ['ipsi', 'contra', 'both', 'dominant'];
+    // represented in a cortical area or nucleus (partOf), and/or served by a pathway (via)
+    if (s.partOf && byId[s.partOf]?.type !== 'brain') fail(`${s.id}: represented in ${s.partOf}, which is not a brain structure`);
+    if (!SIDES.includes(s.self)) fail(`${s.id}: unknown side ${s.self}`);
+    if (!Array.isArray(s.via) || (!s.partOf && !s.via.length)) fail(`${s.id} has no pathway`);
+    const ids = (s.via || []).map(([x]) => x);
+    if (new Set(ids).size !== ids.length) fail(`${s.id} lists a pathway link twice`);
+    for (const [x, side, partial] of s.via || []) {
+      if (!['tract', 'brain', 'nerve'].includes(byId[x]?.type)) fail(`${s.id}: pathway link ${x} is not a tract, brain structure or nerve`);
+      if (!SIDES.includes(side)) fail(`${s.id}: unknown side ${side} for ${x}`);
+      if (partial !== undefined && partial !== 'partial') fail(`${s.id}: third entry for ${x} must be 'partial'`);
+    }
+    if (s.sideOf && s.sideOf !== 'eye') fail(`${s.id}: unknown sideOf ${s.sideOf}`);
+  }
+  if (s.type === 'artery') for (const x of s.territory || []) if (!['brain', 'tract', 'function'].includes(byId[x]?.type)) fail(`${s.id}: territory ${x} is not a CNS structure`);
 }
 ok(`${structures.length} structures, ${relations.length} relations checked`);
 
@@ -315,6 +360,100 @@ expect('n_plexus_cervical', {
 expect('n_cervical_sympathetic', { superior_tarsal: 'paralysed', levator_palpebrae: 'unaffected' });
 expectOrgans('n_cervical_sympathetic', { eye: ['partial', { sympathetic: 'lost' }] });
 
+// Central lesions: each function's status and side relative to the lesion ('lost:contra', 'partial:ipsi'),
+// or 'unaffected'.
+function expectCNS(site, expectations) {
+  const res = computeLesion(site);
+  if (!res) { fail(`lesion ${site}: not lesionable`); return; }
+  const got = Object.fromEntries(res.functions.map(f => [f.id, `${f.status}:${f.side}`]));
+  for (const [fn, want] of Object.entries(expectations)) {
+    if (!byId[fn] || byId[fn].type !== 'function') { fail(`lesion ${site}: ${fn} is not a function`); continue; }
+    if ((got[fn] || 'unaffected') !== want) fail(`lesion ${site}: ${fn} expected ${want}, got ${got[fn] || 'unaffected'}`);
+  }
+  ok(`lesion ${site}: ${res.functions.length} functions affected`);
+}
+
+// Brown-Séquard (hemisection of the thoracic cord): ipsilateral spastic leg palsy and loss of
+// touch/vibration, contralateral loss of pain and temperature; the arm and face are spared.
+expectCNS('spinal_cord_thoracic', {
+  f_motor_leg: 'lost:ipsi', f_touch_leg: 'lost:ipsi', f_pain_leg: 'lost:contra', f_coordination: 'partial:ipsi',
+  f_motor_arm: 'unaffected', f_touch_arm: 'unaffected', f_pain_arm: 'unaffected', f_sympathetic_head: 'unaffected'
+});
+// Cervical hemisection adds the arm and an ipsilateral Horner syndrome.
+expectCNS('spinal_cord_cervical', {
+  f_motor_leg: 'lost:ipsi', f_motor_arm: 'lost:ipsi', f_touch_arm: 'lost:ipsi', f_pain_arm: 'lost:contra',
+  f_sympathetic_head: 'lost:ipsi', f_motor_lower_face: 'unaffected'
+});
+// Internal capsule stroke: pure contralateral hemiplegia and hemianaesthesia including the lower face
+// and tongue; forehead and swallowing spared by their bilateral cortical supply.
+expectCNS('internal_capsule', {
+  f_motor_leg: 'lost:contra', f_motor_arm: 'lost:contra', f_motor_lower_face: 'lost:contra', f_motor_tongue: 'lost:contra',
+  f_touch_leg: 'lost:contra', f_touch_arm: 'lost:contra', f_pain_leg: 'lost:contra', f_pain_arm: 'lost:contra',
+  f_face_touch: 'lost:contra', f_face_pain: 'lost:contra',
+  f_motor_upper_face: 'partial:contra', f_swallowing: 'partial:contra',
+  f_language_expressive: 'unaffected', f_hearing: 'unaffected'
+});
+// Wallenberg (lateral medulla, PICA): ipsilateral face pain/temperature, dysphagia, vertigo, Horner and
+// ataxia; contralateral body pain/temperature; no hemiparesis, touch spared.
+for (const site of ['a_pica', 'a_vertebral']) {
+  expectCNS(site, {
+    f_swallowing: 'lost:ipsi', f_face_pain: 'lost:ipsi', f_balance: 'lost:ipsi', f_sympathetic_head: 'lost:ipsi',
+    f_pain_leg: 'lost:contra', f_pain_arm: 'lost:contra', f_coordination: 'partial:ipsi',
+    f_motor_leg: 'unaffected', f_motor_arm: 'unaffected', f_touch_leg: 'unaffected', f_touch_arm: 'unaffected', f_face_touch: 'unaffected'
+  });
+}
+// AICA (lateral pons): ipsilateral facial palsy, deafness, vertigo, Horner, face pain; contralateral body pain.
+expectCNS('a_aica', {
+  f_motor_lower_face: 'lost:ipsi', f_motor_upper_face: 'lost:ipsi', f_hearing: 'lost:ipsi', f_balance: 'lost:ipsi',
+  f_sympathetic_head: 'lost:ipsi', f_face_pain: 'lost:ipsi', f_pain_leg: 'lost:contra', f_motor_arm: 'unaffected'
+});
+// Cortical territories.
+expectCNS('a_mca_cortical', {
+  f_motor_arm: 'lost:contra', f_motor_lower_face: 'lost:contra', f_touch_arm: 'lost:contra', f_face_touch: 'lost:contra',
+  f_motor_upper_face: 'partial:contra', f_language_expressive: 'lost:dominant', f_language_receptive: 'lost:dominant',
+  f_motor_leg: 'unaffected', f_touch_leg: 'unaffected'
+});
+expectCNS('a_mca', { f_motor_leg: 'lost:contra', f_motor_arm: 'lost:contra', f_movement_initiation: 'partial:contra', f_language_expressive: 'lost:dominant' });
+expectCNS('a_aca', { f_motor_leg: 'lost:contra', f_touch_leg: 'lost:contra', f_pain_leg: 'lost:contra', f_motor_arm: 'unaffected', f_motor_lower_face: 'unaffected' });
+// PCA: contralateral homonymous hemianopia (temporal field of the contralateral eye, nasal field of the ipsilateral eye).
+expectCNS('a_pca', {
+  f_vision_temporal_upper: 'lost:contra', f_vision_temporal_lower: 'lost:contra',
+  f_vision_nasal_upper: 'lost:ipsi', f_vision_nasal_lower: 'lost:ipsi', f_motor_arm: 'unaffected'
+});
+// Basilar occlusion: bilateral (locked-in pattern); vertical gaze via the oculomotor nucleus is spared.
+expectCNS('a_basilar', {
+  f_motor_leg: 'lost:both', f_motor_arm: 'lost:both', f_hearing: 'lost:both', f_eye_abduction: 'lost:both',
+  f_swallowing: 'partial:both', f_eye_oculomotor: 'unaffected'
+});
+expectCNS('a_sca', { f_coordination: 'lost:ipsi', f_motor_arm: 'unaffected' });
+// Anterior spinal artery: paraplegia and loss of pain below the lesion, dorsal columns spared.
+expectCNS('a_anterior_spinal', { f_motor_leg: 'lost:both', f_pain_leg: 'lost:both', f_touch_leg: 'unaffected' });
+// Visual pathway: chiasm -> bitemporal hemianopia; optic tract -> homonymous hemianopia; Meyer's loop -> upper quadrant.
+expectCNS('t_optic_chiasm', {
+  f_vision_temporal_upper: 'lost:both', f_vision_temporal_lower: 'lost:both', f_vision_nasal_upper: 'unaffected', f_vision_nasal_lower: 'unaffected'
+});
+expectCNS('t_optic_tract', {
+  f_vision_temporal_upper: 'lost:contra', f_vision_temporal_lower: 'lost:contra', f_vision_nasal_upper: 'lost:ipsi', f_vision_nasal_lower: 'lost:ipsi'
+});
+expectCNS('t_optic_radiation_meyer', {
+  f_vision_temporal_upper: 'lost:contra', f_vision_nasal_upper: 'lost:ipsi', f_vision_temporal_lower: 'unaffected', f_vision_nasal_lower: 'unaffected'
+});
+// Weber syndrome (cerebral peduncle): ipsilateral oculomotor palsy, contralateral hemiplegia.
+expectCNS('cerebral_peduncle', {
+  f_eye_oculomotor: 'lost:ipsi', f_motor_leg: 'lost:contra', f_motor_arm: 'lost:contra', f_motor_lower_face: 'lost:contra',
+  f_motor_upper_face: 'partial:contra', f_touch_arm: 'unaffected'
+});
+// Above the pyramidal decussation the deficit is contralateral, below it ipsilateral.
+expectCNS('t_corticospinal', { f_motor_leg: 'lost:contra', f_motor_arm: 'lost:contra' });
+expectCNS('t_lateral_cst_cervical', { f_motor_leg: 'lost:ipsi', f_motor_arm: 'lost:ipsi' });
+expectCNS('trochlear_nucleus', { f_eye_trochlear: 'lost:contra' });
+expectCNS('substantia_nigra', { f_movement_initiation: 'lost:contra' });
+// Central (upper motor neuron) facial palsy spares the forehead; the facial nerve itself takes the whole half of the face.
+expectCNS('n_corticonuclear_facial', { f_motor_lower_face: 'lost:contra', f_motor_upper_face: 'unaffected' });
+expectCNS('n_facial', { f_motor_lower_face: 'lost:ipsi', f_motor_upper_face: 'lost:ipsi' });
+// Structures with no mapped function are not offered for lesions.
+for (const id of ['corpus_callosum', 'a_acom']) if (isLesionable(id)) fail(`${id} should not be lesionable`);
+
 // Quiz: every generated question has 4 distinct options including the answer, all from the region
 // (or its context structures).
 const { makeQuestion, quizTypesFor } = await import('../js/quiz.js');
@@ -328,7 +467,16 @@ for (const r of BODY_REGIONS.filter(r => r.available)) {
       for (let i = 0; i < 300; i++, count++) {
         const q = makeQuestion(type, lang, region);
         const ids = q.options.map(o => o.id);
-        if (ids.length !== 4 || new Set(ids).size !== 4 || !ids.includes(q.answer) || !ids.every(local)) {
+        let wrong = false;
+        if (type === 'cns') {
+          // "which function is lost": only the answer is affected; "where is the lesion": only the answer gives this pattern
+          const sig = id => computeLesion(id).functions.map(f => `${f.id}:${f.status}:${f.side}`).sort().join('|');
+          if (byId[q.answer].type === 'function') {
+            const res = computeLesion(q.lesion), hit = new Set(res.functions.map(f => f.id));
+            wrong = !res.functions.some(f => f.id === q.answer && f.status === 'lost') || ids.filter(id => hit.has(id)).length !== 1;
+          } else wrong = q.answer !== q.lesion || ids.filter(id => sig(id) === sig(q.answer)).length !== 1;
+        }
+        if (wrong || ids.length !== 4 || new Set(ids).size !== 4 || !ids.includes(q.answer) || !ids.every(local)) {
           if (badQuiz++ < 5) console.error(`FAIL quiz ${region}/${type}/${lang}: ${ids.join(',')} answer ${q.answer}`);
         }
       }

@@ -5,10 +5,15 @@ import { structures, byId, regionById } from './data.js';
 
 const COLORS = {
   bone: 0xe9dfc9, muscle: 0xc0675a, nerve: 0xf5cc3a, artery: 0xd61f2c, organ: 0xd98c8c, vein: 0x2f5fbf,
+  brain: 0xd8b4ac, tract: 0x2e9e5b, function: 0x22c3a6,
   paralysed: 0xe0182d, weakened: 0xff9a1f, healthyDim: 0x8c8c8c, lesionNerve: 0x7a2cff, quiz: 0x19b5ff
 };
 
 // Selection glow in the structure's own colour, so it never looks like the lesion purple.
+// Translucent solids built from ellipsoids, spheres and tubes: organs, CNS structures, function nodes.
+const SOLID = new Set(['organ', 'brain', 'function']);
+const SHELL = new Set(['organ', 'brain']);
+
 const glow = hex => new THREE.Color(hex).multiplyScalar(0.55).getHex();
 
 // data coords are [lateral, up, anterior] of the right limb; viewer faces the subject.
@@ -93,7 +98,7 @@ export class Viewer {
     this.onPick = onPick;
     this.onHover = onHover;
     this.objects = new Map(); // id -> { group, mat, type, region, centre, base, opacity, size }
-    this.visibleTypes = { bone: true, muscle: true, nerve: true, artery: true, organ: true, vein: true };
+    this.visibleTypes = { bone: true, muscle: true, nerve: true, artery: true, organ: true, vein: true, brain: true, tract: true, function: true };
     this.state = { selected: null, related: new Set(), lesion: null, quizTarget: null };
     this.region = null;
     this.context = new Set(); // structures of other regions shown for orientation
@@ -220,11 +225,11 @@ export class Viewer {
     const base = s.color ?? COLORS[s.type];
     const mat = new THREE.MeshStandardMaterial({
       color: base, roughness: s.type === 'bone' ? 0.75 : 0.5, metalness: 0.02,
-      transparent: true, opacity: 1, side: s.shape?.plate || s.shape?.shells || s.type === 'organ' ? THREE.DoubleSide : THREE.FrontSide
+      transparent: true, opacity: 1, side: s.shape?.plate || s.shape?.shells || SHELL.has(s.type) ? THREE.DoubleSide : THREE.FrontSide
     });
     const add = geo => { const m = new THREE.Mesh(geo, mat); m.userData.id = s.id; group.add(m); };
 
-    if (s.type === 'organ') {
+    if (SOLID.has(s.type)) {
       // Translucent solids: ellipsoids (optionally tilted so their y axis follows `axis`),
       // spheres, tubes and rings (valve annuli, given by centre, radius and normal).
       const sh = s.shape;
@@ -274,7 +279,7 @@ export class Viewer {
     const box = new THREE.Box3().setFromObject(group);
     this.objects.set(s.id, {
       group, mat, type: s.type, region: s.region, base, centre: box.getCenter(new THREE.Vector3()),
-      opacity: s.type === 'organ' ? s.shape.opacity ?? 0.45 : s.shape?.opacity ?? 1, size: box.getSize(new THREE.Vector3()).length()
+      opacity: SOLID.has(s.type) ? s.shape.opacity ?? 0.45 : s.shape?.opacity ?? 1, size: box.getSize(new THREE.Vector3()).length()
     });
     this.scene.add(group);
   }
@@ -288,6 +293,9 @@ export class Viewer {
     const { selected, related, lesion, quizTarget } = this.state;
     const lesionStatus = lesion ? Object.fromEntries([...lesion.muscles, ...(lesion.organs || [])].map(m => [m.id, m.status])) : null;
     const lesionNerves = lesion ? new Set(lesion.nerves) : null;
+    // Central lesions: structures hit by the lesion and the functions it removes.
+    const lesionHit = new Set(lesion?.hits || []);
+    const lesionFn = lesion ? Object.fromEntries((lesion.functions || []).map(f => [f.id, f.status])) : null;
     const contextOpacity = regionById[this.region]?.contextOpacity ?? 1;
 
     for (const [id, o] of this.objects) {
@@ -295,31 +303,41 @@ export class Viewer {
       // Organs are translucent; structures borrowed from another region can be faded so they
       // do not hide the region's own structures (e.g. the sternum in front of the heart).
       // Bones may set their own opacity too (the skull vault, so the cranial nerves show through).
-      const own = o.type === 'organ' ? o.opacity
+      const shell = SHELL.has(o.type);
+      const own = SOLID.has(o.type) ? o.opacity
         : o.region === this.region ? o.opacity : o.type === 'bone' ? Math.min(contextOpacity, o.opacity) : o.type === 'muscle' ? Math.min(contextOpacity, 0.3) : 1;
       let color = base, opacity = own, emissive = 0x000000, visible = this.visibleTypes[o.type];
 
       if (quizTarget) {
-        if (id === quizTarget) { color = COLORS.quiz; emissive = 0x0b4f8a; visible = true; opacity = o.type === 'organ' ? 0.65 : 1; }
-        else opacity = Math.min(own, o.type === 'bone' ? 0.55 : o.type === 'organ' ? 0.08 : 0.18);
+        if (id === quizTarget) { color = COLORS.quiz; emissive = 0x0b4f8a; visible = true; opacity = shell ? 0.65 : 1; }
+        else opacity = Math.min(own, o.type === 'bone' ? 0.55 : shell ? 0.08 : 0.18);
       } else if (lesion) {
         if (o.type === 'muscle' || o.type === 'organ') {
           const st = lesionStatus[id];
           color = st === 'paralysed' || st === 'denervated' ? COLORS.paralysed
             : st === 'weakened' || st === 'partial' ? COLORS.weakened : COLORS.healthyDim;
           opacity = o.type === 'organ' ? (st ? Math.max(own, 0.5) : 0.12) : st ? 1 : Math.min(own, 0.35);
-        } else if (o.type === 'nerve') {
-          if (id === lesion.nerve) { color = COLORS.lesionNerve; emissive = 0x3a0090; visible = true; opacity = 1; }
+        } else if (o.type === 'function') {
+          const st = lesionFn[id];
+          color = st === 'lost' ? COLORS.paralysed : st === 'partial' ? COLORS.weakened : COLORS.healthyDim;
+          if (st) visible = true; else opacity = 0.35;
+        } else if (o.type === 'brain') {
+          if (id === lesion.nerve || lesionHit.has(id)) { color = COLORS.lesionNerve; emissive = 0x2a0070; visible = true; opacity = Math.max(own, 0.55); }
+          else if (lesionNerves.has(id)) { color = 0x555555; visible = true; opacity = Math.max(own, 0.45); }
+          else opacity = Math.min(own, 0.12);
+        } else if (o.type === 'nerve' || o.type === 'tract') {
+          if (id === lesion.nerve || lesionHit.has(id)) { color = COLORS.lesionNerve; emissive = 0x3a0090; visible = true; opacity = 1; }
           else if (lesionNerves.has(id)) { color = 0x555555; visible = true; opacity = 1; }
-          else opacity = Math.min(own, 0.6);
-        } else if (o.type === 'artery' || o.type === 'vein') opacity = 0.25;
+          else opacity = Math.min(own, o.type === 'tract' ? 0.25 : 0.6);
+        } else if (o.type === 'artery' && id === lesion.nerve) { color = COLORS.lesionNerve; emissive = 0x3a0090; visible = true; opacity = 1; }
+        else if (o.type === 'artery' || o.type === 'vein') opacity = 0.25;
       } else if (selected) {
-        if (id === selected) { emissive = glow(base); visible = true; opacity = o.type === 'organ' ? Math.min(0.75, own + 0.25) : 1; }
+        if (id === selected) { emissive = glow(base); visible = true; opacity = shell ? Math.min(0.75, own + 0.25) : 1; }
         else if (related.has(id)) {
           visible = true;
           // Muscles wrap bones, so keep a selected bone visible through its attachments.
           if (this.objects.get(selected)?.type === 'bone' && o.type === 'muscle') opacity = 0.4;
-        } else opacity = Math.min(own, o.type === 'bone' ? 0.45 : o.type === 'organ' ? 0.06 : 0.12);
+        } else opacity = Math.min(own, o.type === 'bone' ? 0.45 : shell ? 0.06 : 0.12);
       }
 
       o.group.visible = visible && (o.region === this.region || this.context.has(id));
@@ -345,7 +363,7 @@ export class Viewer {
     const span = new Map(); // organ id -> [entry, exit] distance along the ray
     for (const h of hits) {
       const id = h.object.userData.id;
-      if (this.objects.get(id).type !== 'organ' || h.object.material.opacity < 0.1) continue;
+      if (!SHELL.has(this.objects.get(id).type) || h.object.material.opacity < 0.1) continue;
       const s = span.get(id);
       if (s) s[1] = h.distance; else span.set(id, [h.distance, h.distance]);
     }
