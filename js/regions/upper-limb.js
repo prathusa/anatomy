@@ -22,6 +22,7 @@ export const meta = {
     [undefined, { en: 'Nerves', de: 'Nerven' }],
     ['cranial', { en: 'Other nerves', de: 'Weitere Nerven' }]
   ],
+  context: ['cervical_vertebrae', 'thoracic_vertebrae', 'ribs', 'sternum'],
   camera: { target: [-15, -37, -2], position: [-24, -30, 152] }
 };
 

@@ -1,4 +1,4 @@
-import { structures, byId, relations, BODY_REGIONS, regionById } from './data.js';
+import { structures, byId, relations, BODY_REGIONS, regionById, formatSegs } from './data.js';
 import { UI } from './i18n.js';
 import { computeLesion, ancestors } from './lesion.js';
 import { makeQuestion, QUIZ_TYPES } from './quiz.js';
@@ -27,7 +27,9 @@ const link = id => {
   const s = byId[id];
   return `<a href="#" data-id="${id}">${esc(s.name[state.lang])}</a>`;
 };
-const segs = list => `<span class="seg">${list.join(', ')}</span>`;
+const segs = list => `<span class="seg">${formatSegs(list)}</span>`;
+// Structures of the current region, plus the other regions' bones it shows for orientation.
+const inRegion = id => byId[id]?.region === state.region || !!region()?.context?.includes(id);
 
 // ------------------------------------------------------------------ 3D + graph
 const viewer = new Viewer($('#viewer'), {
@@ -104,7 +106,7 @@ function regionGroups(r, prefix) {
   if (state.mode !== 'lesion') {
     const nerveCount = groups.length;
     for (const [key, label] of Object.entries(r.muscleGroups)) groups.push([`${L.muscle}: ${label[state.lang]}`, of('muscle', key)]);
-    groups.push([L.bone, of('bone')]);
+    groups.push([L.bone, [...of('bone'), ...(prefix ? [] : r.context || []).map(id => byId[id])]]);
     groups.push([L.artery, of('artery')]);
     // muscles and bones first in explore mode
     groups.push(...groups.splice(0, nerveCount));
@@ -256,12 +258,12 @@ function setRegion(id) {
   state.region = id;
   viewer.setRegion(id);
   graph.setRegion(id);
-  if (byId[state.selected]?.region !== id) state.selected = region().start;
+  if (!inRegion(state.selected)) state.selected = region().start;
   if (byId[state.lesion]?.region !== id) state.lesion = null;
 }
 
 function select(id, { keepGraph = false, keepMode = false } = {}) {
-  if (id && byId[id].region !== state.region) setRegion(byId[id].region);
+  if (id && !inRegion(id)) setRegion(byId[id].region);
   if (!keepMode && state.mode !== 'explore') setMode('explore', false);
   state.selected = id;
   viewer.setSelection(id, id ? relatedIds(id) : []);

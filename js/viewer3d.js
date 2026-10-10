@@ -73,6 +73,7 @@ export class Viewer {
     this.visibleTypes = { bone: true, muscle: true, nerve: true, artery: true };
     this.state = { selected: null, related: new Set(), lesion: null, quizTarget: null };
     this.region = null;
+    this.context = new Set(); // bones of other regions shown for orientation
     this.home = null;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
@@ -118,6 +119,7 @@ export class Viewer {
     const first = !this.region;
     const cam = regionById[id].camera;
     this.region = id;
+    this.context = new Set(regionById[id].context || []);
     this.home = { target: new THREE.Vector3(...cam.target), position: new THREE.Vector3(...cam.position) };
     this.applyStyles();
     this.resetView(first);
@@ -160,20 +162,21 @@ export class Viewer {
   addGhost() {
     const mat = new THREE.MeshStandardMaterial({ color: 0x9fb4c8, transparent: true, opacity: 0.07, depthWrite: false, roughness: 1 });
     const thorax = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), mat);
-    thorax.scale.set(11.5, 17, 7.6);
-    thorax.position.set(0, -14, -2.8);
+    thorax.scale.set(12.5, 18, 8.6);
+    thorax.position.set(0, -14, -3);
     const head = new THREE.Mesh(new THREE.SphereGeometry(7.5, 24, 18), mat);
     head.position.set(0, 22, -2);
     const neck = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 5.4, 12, 20), mat);
     neck.position.set(0, 9, -3.5);
+    const waist = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), mat);
+    waist.scale.set(12.4, 10, 8.2);
+    waist.position.set(0, -29, -1.8);
     const abdomen = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 24), mat);
-    abdomen.scale.set(12.5, 15, 8.5);
-    abdomen.position.set(0, -44, -1.5);
-    const spine = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 58, 10),
-      new THREE.MeshStandardMaterial({ color: 0xd8d0c0, transparent: true, opacity: 0.25, depthWrite: false }));
-    spine.position.set(0, -15, -10.6);
+    abdomen.scale.set(12.5, 15, 9);
+    abdomen.position.set(0, -44, -1.8);
+    // The vertebral column is real geometry now (back region), so no ghost spine.
     const ghost = new THREE.Group();
-    ghost.add(thorax, head, neck, abdomen, spine);
+    ghost.add(thorax, head, neck, waist, abdomen);
     // Legs: thigh tapering to the knee, calf bulge, then the ankle; a flat ellipsoid for the foot.
     const legProfile = t => t < 0.5 ? 8.4 - 3.4 * (t / 0.5) : 5 - 1.8 * ((t - 0.5) / 0.5) + 1.1 * Math.sin(Math.PI * (t - 0.5) / 0.5);
     for (const side of [1, -1]) {
@@ -220,7 +223,10 @@ export class Viewer {
         add(profiledTube(f, s.shape.r, muscleProfile(len, longTendon && len > 14), 40, 12).geo);
       }
     } else {
-      add(profiledTube(s.path, s.r, s.type === 'artery' ? (t => 1 - 0.25 * t) : constant, Math.max(12, s.path.length * 10), 8).geo);
+      // `paths` holds several separate segmental branches drawn as one structure.
+      for (const p of s.paths || [s.path]) {
+        add(profiledTube(p, s.r, s.type === 'artery' ? (t => 1 - 0.25 * t) : constant, Math.max(12, p.length * 10), 8).geo);
+      }
     }
 
     const box = new THREE.Box3().setFromObject(group);
@@ -264,7 +270,7 @@ export class Viewer {
         } else opacity = o.type === 'bone' ? 0.45 : 0.12;
       }
 
-      o.group.visible = visible && o.region === this.region;
+      o.group.visible = visible && (o.region === this.region || this.context.has(id));
       o.mat.color.setHex(color);
       o.mat.emissive.setHex(emissive);
       o.mat.opacity = opacity;

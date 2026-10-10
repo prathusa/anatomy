@@ -18,6 +18,7 @@ export const meta = {
     ['lumbar', { en: 'Lumbar plexus', de: 'Plexus lumbalis' }],
     ['sacral', { en: 'Sacral plexus', de: 'Plexus sacralis' }]
   ],
+  context: ['lumbar_vertebrae'],
   camera: { target: [-9, -88, 0], position: [-34, -80, 190] }
 };
 
@@ -483,7 +484,7 @@ const nerves = [
 // ---------------------------------------------------------------- arteries
 const arteries = [
   {
-    id: 'a_common_iliac', type: 'artery', parents: [],
+    id: 'a_common_iliac', type: 'artery', parents: ['a_abdominal_aorta'],
     name: { en: 'Common iliac artery', de: 'Gemeinsame Beckenarterie', la: 'Arteria iliaca communis' },
     info: {
       en: 'Arises at the aortic bifurcation (level of L4, about at the navel) and divides in front of the sacroiliac joint into the external and internal iliac arteries.',

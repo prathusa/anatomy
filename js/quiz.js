@@ -8,7 +8,7 @@ const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i
 const sample = (arr, n, exclude = new Set()) => shuffle(arr.filter(x => !exclude.has(x.id))).slice(0, n);
 
 // Questions stay within the current body region.
-const PLEXUS_PARTS = new Set(['root', 'trunk', 'cord']);
+const PLEXUS_PARTS = new Set(['root', 'trunk', 'cord', 'spinal']);
 const pools = {};
 function poolsFor(region) {
   if (!pools[region]) {
@@ -57,7 +57,7 @@ export function makeQuestion(type, lang, region) {
       for (let tries = 0; tries < 50; tries++) {
         const n = pick(nerves);
         const res = computeLesion(n.id);
-        const paralysed = res.muscles.filter(x => x.status === 'paralysed').map(x => byId[x.id]);
+        const paralysed = res.muscles.filter(x => x.status === 'paralysed').map(x => byId[x.id]).filter(x => x.region === region);
         const affected = new Set(res.muscles.map(x => x.id));
         const spared = muscles.filter(x => !affected.has(x.id));
         if (!paralysed.length || spared.length < 3) continue;

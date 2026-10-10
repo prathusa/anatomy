@@ -1,6 +1,6 @@
 // Connection graph (Cytoscape). Shows the neighbourhood of the selection or the whole plexus.
 import cytoscape from '../vendor/cytoscape.esm.min.mjs';
-import { structures, byId, relations } from './data.js';
+import { structures, byId, relations, formatSegs } from './data.js';
 import { ancestors } from './lesion.js';
 
 const TYPE_COLOR = { bone: '#d9cdb2', muscle: '#c0675a', nerve: '#e6b800', artery: '#d61f2c' };
@@ -63,7 +63,7 @@ export class Graph {
     const typeLabel = this.lang === 'de'
       ? { origin: 'Ursprung', insertion: 'Ansatz', supplies: '', branch: '' }
       : { origin: 'origin', insertion: 'insertion', supplies: '', branch: '' };
-    const label = this.mode !== 'neighbourhood' ? '' : r.type === 'innervates' ? r.seg.join(',') : typeLabel[r.type];
+    const label = this.mode !== 'neighbourhood' ? '' : r.type === 'innervates' ? formatSegs(r.seg) : typeLabel[r.type];
     return { group: 'edges', data: { id: `${r.type}:${r.from}>${r.to}`, source: r.from, target: r.to, type: r.type, color: EDGE_COLOR[r.type], label } };
   }
 

@@ -29,6 +29,7 @@ for (const r of BODY_REGIONS.filter(r => r.available)) {
   for (const n of own.filter(s => s.type === 'nerve')) if (!nerveGroups.has(n.group)) fail(`${n.id}: nerve group ${n.group} not listed in ${r.id} meta`);
   for (const m of own.filter(s => s.type === 'muscle')) if (!r.muscleGroups?.[m.group]) fail(`${m.id}: muscle group ${m.group} not in ${r.id} muscleGroups`);
   if (r.camera?.target?.length !== 3 || r.camera?.position?.length !== 3) fail(`region ${r.id} has no camera`);
+  for (const id of r.context || []) if (byId[id]?.type !== 'bone' || byId[id].region === r.id) fail(`region ${r.id}: context "${id}" is not a bone of another region`);
 }
 
 // a muscle lists each nerve once (otherwise the graph gets duplicate edge ids)
@@ -57,15 +58,19 @@ for (const s of structures) {
     }
     if (!s.shape?.fibers?.length) fail(`${s.id} has no 3D shape`);
   }
+  // a nerve or artery is drawn from `path`, or from `paths` (several segmental branches)
+  const hasPath = s => s.paths ? s.paths.length && s.paths.every(p => p.length >= 2 && p.every(pt => pt.length === 3 && pt.every(Number.isFinite)))
+    : s.path?.length >= 2 && s.path.every(pt => pt.length === 3 && pt.every(Number.isFinite));
   if (s.type === 'nerve') {
-    if (!s.path || s.path.length < 2) fail(`${s.id} has no path`);
+    if (!hasPath(s)) fail(`${s.id} has no path`);
     // child segments must be a subset of the union of parent segments
     if (s.parents.length) {
       const up = new Set(s.parents.flatMap(p => byId[p]?.segs || []));
       for (const seg of s.segs) if (!up.has(seg)) fail(`${s.id}: segment ${seg} not in parents ${s.parents}`);
     }
   }
-  if (s.type === 'artery' && (!s.path || s.path.length < 2)) fail(`${s.id} has no path`);
+  if (s.type === 'artery' && !hasPath(s)) fail(`${s.id} has no path`);
+  if (s.type === 'muscle' && s.shape?.fibers?.some(f => f.length < 2 || f.some(pt => pt.length !== 3 || !pt.every(Number.isFinite)))) fail(`${s.id} has a broken fibre`);
 }
 ok(`${structures.length} structures, ${relations.length} relations checked`);
 
@@ -134,6 +139,17 @@ expect('n_tibial', {
 });
 expect('root_L5', { extensor_hallucis_longus: 'weakened', gluteus_medius: 'weakened', tibialis_anterior: 'weakened', rectus_femoris: 'unaffected' });
 expect('trunk_lumbosacral', { tibialis_anterior: 'paralysed' });
+
+// back and trunk wall
+expect('n_phrenic', { diaphragm: 'paralysed', rectus_abdominis: 'unaffected' });
+expect('n_suboccipital', { rectus_capitis_posterior_major: 'paralysed', obliquus_capitis_inferior: 'paralysed', semispinalis: 'unaffected' });
+expect('n_medial_branches', { multifidus: 'paralysed', rotatores: 'paralysed', iliocostalis: 'unaffected', splenius: 'unaffected' });
+expect('n_lateral_branches', { iliocostalis: 'paralysed', splenius: 'paralysed', multifidus: 'unaffected' });
+expect('dr_thoracic', { rotatores: 'paralysed', multifidus: 'weakened', external_intercostals: 'unaffected' });
+expect('n_thoracoabdominal', { rectus_abdominis: 'weakened', diaphragm: 'unaffected' });
+expect('sn_thoracic', { rectus_abdominis: 'paralysed', serratus_posterior_superior: 'paralysed', internal_oblique: 'weakened', diaphragm: 'unaffected' });
+expect('n_iliohypogastric', { internal_oblique: 'weakened' });
+expect('n_subcostal', { quadratus_lumborum: 'weakened' });
 
 // Quiz: every generated question has 4 distinct options including the answer, all from the region.
 const { makeQuestion, QUIZ_TYPES } = await import('../js/quiz.js');

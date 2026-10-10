@@ -3,15 +3,17 @@
 A free, interactive anatomy study tool in **English, German and Latin**.
 It is built for people who learn anatomy by tracing the **connections**: which nerve supplies which muscle, which segments it carries, which artery feeds it, and what is lost when a nerve is cut.
 
-The site is built **region by region**. The **upper limb** and the **lower limb** are complete; the rest of the body follows piece by piece (see [Roadmap](#roadmap)). Switch regions with the menu at the top.
+The site is built **region by region**. The **upper limb**, the **lower limb** and the **back and trunk wall** are complete; the rest of the body follows piece by piece (see [Roadmap](#roadmap)). Switch regions with the menu at the top.
 
-*Kostenloses, interaktives Lernwerkzeug für Anatomie auf Deutsch, Englisch und Latein. Es zeigt, wie Nerven, Muskeln, Knochen und Arterien zusammenhängen und was bei einer Nervenläsion ausfällt. Die Seite wächst Region für Region; obere und untere Extremität sind fertig.*
+*Kostenloses, interaktives Lernwerkzeug für Anatomie auf Deutsch, Englisch und Latein. Es zeigt, wie Nerven, Muskeln, Knochen und Arterien zusammenhängen und was bei einer Nervenläsion ausfällt. Die Seite wächst Region für Region; obere und untere Extremität sowie Rücken und Rumpfwand sind fertig.*
 
 ## Features
 
 - **3D view**: a schematic model of each region. Rotate, zoom, hover for names, click to select, and toggle each layer on or off.
   - Upper limb: 8 bones, 49 muscles or muscle groups, 28 nerves (brachial plexus roots to terminal branches) and 20 arteries.
   - Lower limb: 9 bones, 39 muscles or muscle groups, 31 nerves (lumbosacral plexus roots to terminal branches) and 17 arteries.
+  - Back and trunk wall: 6 bones (vertebral column, ribs, sternum, occipital bone), 24 muscles or muscle groups (intrinsic back muscles, suboccipital muscles, thoracic wall, diaphragm, abdominal wall), 18 nerves (spinal nerves, dorsal rami and their branches, intercostal, subcostal and phrenic nerves) and 15 arteries.
+  - Neighbouring bones from other regions (e.g. the spine and ribs in the upper limb, the hip bone in the back) are shown for orientation.
 - **Explore**: each structure has a card with:
   - origin, insertion and action;
   - innervation with spinal segments;
@@ -20,10 +22,10 @@ The site is built **region by region**. The **upper limb** and the **lower limb*
   All names are shown in DE, EN and Latin.
 - **Connection graph**: the graph has three views:
   - the selected structure's neighbourhood;
-  - the region's whole plexus (brachial or lumbosacral);
+  - the region's whole plexus (brachial, lumbosacral, or the spinal nerves and their rami);
   - the plexus down to its muscles.
   An enlarge button (⤢) gives a full-screen view.
-- **Lesion simulator**: cut any root, part of the plexus or nerve. Muscles turn red if paralysed and orange if weakened, each with the segments it lost. The rule is that only segments carried by the cut nerve are lost: a muscle is paralysed when every innervation it has is lost, and weakened when only some are. A clinical picture is included, e.g. wrist drop, claw hand, Erb and Klumpke palsy, foot drop, Trendelenburg sign.
+- **Lesion simulator**: cut any root, part of the plexus or nerve. Muscles turn red if paralysed and orange if weakened, each with the segments it lost. The rule is that only segments carried by the cut nerve are lost: a muscle is paralysed when every innervation it has is lost, and weakened when only some are. A clinical picture is included, e.g. wrist drop, claw hand, Erb and Klumpke palsy, foot drop, Trendelenburg sign, phrenic nerve palsy, herpes zoster.
 - **Quiz**: five question types, drawn from the current region:
   - name the highlighted structure;
   - which nerve supplies a muscle;
@@ -38,7 +40,7 @@ The site is built **region by region**. The **upper limb** and the **lower limb*
 | --- | --- | --- |
 | 1 | Upper limb · Obere Extremität | ✅ available |
 | 2 | Lower limb · Untere Extremität | ✅ available |
-| 3 | Back and trunk wall · Rücken und Rumpfwand | planned |
+| 3 | Back and trunk wall · Rücken und Rumpfwand | ✅ available |
 | 4 | Thorax | planned |
 | 5 | Abdomen | planned |
 | 6 | Pelvis · Becken | planned |
@@ -64,18 +66,21 @@ To publish it, copy the folder to any static host, e.g. GitHub Pages or Netlify.
 
 | Path | Contents |
 | --- | --- |
-| `js/regions/upper-limb.js`, `js/regions/lower-limb.js` | Region data: names in EN/DE/Latin, attachments, actions, innervation and segments, supply, 3D geometry, and region settings (`meta`) |
+| `js/regions/upper-limb.js`, `lower-limb.js`, `back.js` | Region data: names in EN/DE/Latin, attachments, actions, innervation and segments, supply, 3D geometry, and region settings (`meta`) |
 | `js/data.js` | Region registry and roadmap: merges all region modules and builds the relations between structures |
 | `js/lesion.js` | Lesion model: which segments are lost downstream of a cut, and which muscles are paralysed or weakened |
 | `js/viewer3d.js` | three.js scene |
 | `js/graph.js` | Cytoscape connection graph |
 | `js/quiz.js` | Question generators |
 | `js/i18n.js` | UI strings in DE and EN |
-| `test/validate.mjs` | Checks unique ids across regions, every relation, every name in all 3 languages, that each muscle's segments are carried by its nerve, each region's settings, 19 lesion cases with known answers, and 6000 generated quiz questions |
+| `test/validate.mjs` | Checks unique ids across regions, every relation, every name in all 3 languages, that each muscle's segments are carried by its nerve, each region's settings, 28 lesion cases with known answers, and 9000 generated quiz questions |
 
 ### Adding a region
 
 1. Create `js/regions/<region>.js` exporting `structures`, `muscleGroups` and `meta` (start structure, plexus name, nerve list groups, home camera), in the same format as `lower-limb.js`.
+   - `meta.context` (optional) lists bone ids from other regions to show for orientation.
+   - A nerve or artery made of several separate segmental branches can use `paths` (a list of polylines) instead of `path`.
+   - A structure may name a parent or innervating nerve from another region (e.g. the abdominal wall muscles name the iliohypogastric nerve); a muscle's first nerve must be in its own region.
 2. Import it in `js/data.js` and mark the region `available` in `BODY_REGIONS`.
 3. Add its lesion cases to `test/validate.mjs` and run the checks.
 
