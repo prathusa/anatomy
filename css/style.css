@@ -1,0 +1,151 @@
+:root {
+  --bg: #f4f6fa;
+  --panel: #ffffff;
+  --ink: #1d2433;
+  --muted: #5d6779;
+  --line: #dde2ec;
+  --accent: #1f4fbf;
+  --bone: #d9cdb2;
+  --muscle: #c0675a;
+  --nerve: #e6b800;
+  --artery: #d61f2c;
+  --paralysed: #e0182d;
+  --weakened: #ff9a1f;
+  --lesion: #7a2cff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; height: 100vh; display: flex; flex-direction: column; }
+button { font: inherit; cursor: pointer; }
+a { color: var(--accent); }
+.la { color: var(--muted); font-style: italic; font-size: 0.86em; }
+
+header {
+  display: flex; align-items: center; gap: 1.5rem; padding: 0.6rem 1rem;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand h1 { margin: 0; font-size: 1.15rem; }
+.brand p { margin: 0; font-size: 0.8rem; color: var(--muted); }
+.modes { display: flex; gap: 0.25rem; margin-left: auto; }
+.modes button, .lang button, .graph-tabs button, .quiz-types button {
+  border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 0.3rem 0.9rem; color: var(--ink);
+}
+.modes button.active, .lang button.active, .graph-tabs button.active, .quiz-types button.active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.lang { display: flex; gap: 0.2rem; }
+.region-pick { font-size: 0.8rem; color: var(--muted); }
+.region-pick select {
+  font: inherit; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0.25rem 0.4rem; background: #fff;
+}
+
+main {
+  flex: 1; display: grid; grid-template-columns: 270px minmax(0, 1fr) 400px;
+  grid-template-rows: minmax(0, 1fr); min-height: 0;
+}
+
+#sidebar {
+  background: var(--panel); border-right: 1px solid var(--line); padding: 0.75rem;
+  display: flex; flex-direction: column; gap: 0.6rem; min-height: 0;
+}
+#search { width: 100%; padding: 0.45rem 0.6rem; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+#layers { border: 1px solid var(--line); border-radius: 8px; padding: 0.3rem 0.6rem 0.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 0.5rem; font-size: 0.85rem; }
+#layers legend { font-size: 0.75rem; color: var(--muted); padding: 0 0.3rem; }
+#layers label { display: flex; align-items: center; gap: 0.35rem; }
+.dot { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; }
+.dot.bone { background: var(--bone); border: 1px solid #b5a682; }
+.dot.muscle { background: var(--muscle); }
+.dot.nerve { background: var(--nerve); }
+.dot.artery { background: var(--artery); }
+.dot.paralysed { background: var(--paralysed); }
+.dot.weakened { background: var(--weakened); }
+.dot.lesion { background: var(--lesion); }
+.dot.spared { background: #a8a8a8; }
+
+#list { overflow-y: auto; flex: 1; font-size: 0.88rem; }
+#list h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 0.8rem 0 0.25rem; }
+#list button {
+  display: block; width: 100%; text-align: left; border: 0; background: none; padding: 0.3rem 0.4rem; border-radius: 6px; color: var(--ink);
+}
+#list button:hover { background: #eef2fb; }
+#list button.active { background: #dde6fb; font-weight: 600; }
+#list button small { display: block; color: var(--muted); font-size: 0.75rem; font-weight: normal; }
+
+#stage { position: relative; min-width: 0; min-height: 0; background: radial-gradient(circle at 50% 40%, #ffffff 0%, #e6ebf3 100%); }
+#viewer { position: absolute; inset: 0; }
+#viewer canvas { display: block; touch-action: none; }
+#tooltip {
+  position: absolute; pointer-events: none; background: rgba(29, 36, 51, 0.92); color: #fff; padding: 0.3rem 0.55rem;
+  border-radius: 6px; font-size: 0.8rem; max-width: 280px; z-index: 5;
+}
+#tooltip .la { color: #c8d0e0; }
+#legend {
+  position: absolute; left: 0.75rem; bottom: 0.75rem; background: rgba(255, 255, 255, 0.85); border-radius: 8px;
+  padding: 0.35rem 0.6rem; font-size: 0.78rem; display: flex; gap: 0.7rem; flex-wrap: wrap;
+}
+#legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+#reset-view { position: absolute; right: 0.75rem; bottom: 0.75rem; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+#panel { background: var(--panel); border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+#card { padding: 0.9rem 1rem; overflow-y: auto; flex: 1 1 55%; min-height: 0; font-size: 0.9rem; line-height: 1.45; }
+#card h2 { margin: 0.15rem 0 0.1rem; font-size: 1.2rem; }
+#card .names { color: var(--muted); margin-bottom: 0.6rem; }
+#card .badge { display: inline-block; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.45rem; border-radius: 4px; color: #fff; }
+.badge.bone { background: #a8996f; } .badge.muscle { background: var(--muscle); } .badge.nerve { background: #b89400; } .badge.artery { background: var(--artery); }
+#card dl { margin: 0.5rem 0; }
+#card dt { font-weight: 600; font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.55rem; }
+#card dd { margin: 0.1rem 0 0; }
+#card ul { margin: 0.2rem 0; padding-left: 1.1rem; }
+#card .seg { font-family: ui-monospace, Menlo, monospace; font-size: 0.78rem; background: #f2f0e4; border-radius: 4px; padding: 0 0.3rem; }
+#card .note { color: var(--muted); font-size: 0.82rem; }
+.clinical { background: #fff5f5; border-left: 3px solid var(--paralysed); padding: 0.5rem 0.7rem; border-radius: 4px; margin: 0.6rem 0; }
+.actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.actions button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+.actions button.primary { background: var(--lesion); border-color: var(--lesion); color: #fff; }
+.status-list li { margin-bottom: 0.2rem; }
+.status-list .paralysed { color: var(--paralysed); font-weight: 600; }
+.status-list .weakened { color: #c46a00; font-weight: 600; }
+
+.quiz-types { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.4rem 0 0.8rem; }
+.quiz-types button { font-size: 0.78rem; padding: 0.25rem 0.6rem; }
+.quiz-q { font-size: 1rem; margin: 0.4rem 0; }
+.quiz-detail { background: #f6f7fb; border-radius: 6px; padding: 0.5rem 0.7rem; margin: 0.4rem 0 0.6rem; }
+.quiz-opts { display: grid; gap: 0.35rem; }
+.quiz-opts button { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 0.45rem 0.7rem; }
+.quiz-opts button:hover:not(:disabled) { border-color: var(--accent); }
+.quiz-opts button:disabled { color: var(--ink); cursor: default; }
+.quiz-opts button.right { background: #e5f6e8; border-color: #3aa655; }
+.quiz-opts button.wrongpick { background: #fde8e8; border-color: var(--paralysed); }
+.quiz-feedback { margin-top: 0.6rem; font-weight: 600; }
+.score { float: right; color: var(--muted); font-size: 0.85rem; }
+
+#graph-wrap { border-top: 1px solid var(--line); flex: 1 1 45%; display: flex; flex-direction: column; min-height: 260px; }
+.graph-tabs { display: flex; gap: 0.25rem; align-items: center; padding: 0.4rem 0.6rem; flex-wrap: wrap; }
+.graph-tabs .graph-title { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-right: auto; }
+.graph-tabs button { font-size: 0.75rem; padding: 0.15rem 0.6rem; }
+#graph { flex: 1; min-height: 0; }
+body[data-mode="quiz"] #graph-wrap { display: none; }
+.graph-tabs button.icon { padding: 0.15rem 0.5rem; }
+body.graph-max #graph-wrap {
+  position: fixed; inset: 4vh 4vw; z-index: 20; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+body.graph-max::after { content: ""; position: fixed; inset: 0; background: rgba(20, 26, 40, 0.35); z-index: 19; }
+
+footer { background: var(--panel); border-top: 1px solid var(--line); padding: 0.35rem 1rem; font-size: 0.75rem; color: var(--muted); }
+footer p { margin: 0.1rem 0; }
+footer .small { font-size: 0.7rem; }
+
+@media (max-width: 1000px) {
+  header { flex-wrap: wrap; gap: 0.5rem; }
+  .modes { margin-left: 0; }
+  body { height: auto; }
+  main { display: flex; flex-direction: column; }
+  #sidebar { border-right: 0; border-bottom: 1px solid var(--line); max-height: 40vh; }
+  #stage { height: 60vh; }
+  #panel { border-left: 0; }
+  #graph-wrap { height: 380px; flex: none; }
+}

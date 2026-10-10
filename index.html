@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Anatomy · Anatomie</title>
+  <meta name="description" content="Free interactive anatomy in English, German and Latin: 3D model, connection graph, nerve lesion simulator and quiz. Built region by region: upper and lower limb so far.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%A6%B4%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1 data-i18n="title"></h1>
+      <p data-i18n="subtitle"></p>
+    </div>
+    <label class="region-pick"><span data-i18n="region"></span> <select id="region"></select></label>
+    <nav class="modes" aria-label="Mode">
+      <button data-mode="explore" data-i18n="explore"></button>
+      <button data-mode="lesion" data-i18n="lesion"></button>
+      <button data-mode="quiz" data-i18n="quiz"></button>
+    </nav>
+    <div class="lang" role="group" aria-label="Language">
+      <button data-lang="de">DE</button>
+      <button data-lang="en">EN</button>
+    </div>
+  </header>
+
+  <main>
+    <aside id="sidebar">
+      <input id="search" type="search" autocomplete="off">
+      <fieldset id="layers">
+        <legend data-i18n="layers"></legend>
+        <label><input type="checkbox" data-layer="bone" checked> <span class="dot bone"></span><span data-i18n="bone"></span></label>
+        <label><input type="checkbox" data-layer="muscle" checked> <span class="dot muscle"></span><span data-i18n="muscle"></span></label>
+        <label><input type="checkbox" data-layer="nerve" checked> <span class="dot nerve"></span><span data-i18n="nerve"></span></label>
+        <label><input type="checkbox" data-layer="artery" checked> <span class="dot artery"></span><span data-i18n="artery"></span></label>
+      </fieldset>
+      <nav id="list"></nav>
+    </aside>
+
+    <section id="stage">
+      <div id="viewer"></div>
+      <div id="tooltip" hidden></div>
+      <div id="legend"></div>
+      <button id="reset-view" data-i18n="resetView"></button>
+    </section>
+
+    <section id="panel">
+      <div id="card"></div>
+      <div id="graph-wrap">
+        <div class="graph-tabs">
+          <span data-i18n="connections" class="graph-title"></span>
+          <button data-graph="neighbourhood" data-i18n="graphNeighbourhood"></button>
+          <button data-graph="plexus" data-i18n="graphPlexus"></button>
+          <button data-graph="plexusMuscles" data-i18n="graphPlexusMuscles"></button>
+          <button data-action="graph-max" class="icon" aria-label="Enlarge graph" title="⤢">⤢</button>
+        </div>
+        <div id="graph"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>⚠</strong> <span data-i18n="disclaimer"></span></p>
+    <p class="small"><span data-i18n="sourceNote"></span> · <a href="https://github.com/mrdoob/three.js">three.js</a> · <a href="https://js.cytoscape.org">Cytoscape.js</a></p>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
