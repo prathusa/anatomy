@@ -35,6 +35,10 @@ function distractors(answer, pool, n = 3) {
   return [...a.slice(0, 2), ...b, ...a.slice(2)].slice(0, n);
 }
 
+// Distractors are of the answer's type, so only ask about types with at least four structures
+// in the pool (the pelvis adds a single bone).
+const withPeers = pool => pool.filter(s => pool.filter(x => x.type === s.type).length >= 4);
+
 export const QUIZ_TYPES = ['name', 'nerve', 'lesion', 'translate', 'function', 'supply'];
 
 // Question types that make sense for a region: muscle questions need muscles, supply questions need organs.
@@ -83,7 +87,7 @@ export function makeQuestion(type, lang, region) {
     }
     case 'name': {
       const pool = all.filter(s => ['muscle', 'bone', 'organ', 'vein', 'artery'].includes(s.type)).concat(branchNerves);
-      const ans = pick(pool);
+      const ans = pick(withPeers(pool));
       const opts = shuffle([ans, ...distractors(ans, pool.filter(s => s.type === ans.type))]);
       return { ask: t.qNameAsk, options: opts.map(s => ({ id: s.id, label: nameLabel(s, lang) })), answer: ans.id, highlight: ans.id };
     }
@@ -109,7 +113,7 @@ export function makeQuestion(type, lang, region) {
       return makeQuestion('nerve', lang, region);
     }
     case 'translate': {
-      const ans = pick(all);
+      const ans = pick(withPeers(all));
       const toGerman = Math.random() < 0.5;
       const from = toGerman ? 'en' : 'de', to = toGerman ? 'de' : 'en';
       const pool = all.filter(s => s.type === ans.type);

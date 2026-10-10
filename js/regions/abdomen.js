@@ -153,7 +153,7 @@ const organs = [
   O('transverse_colon', 'intestine', { en: 'Transverse colon', de: 'Querkolon', la: 'Colon transversum' },
     { en: 'Hangs on the transverse mesocolon from the right (hepatic) to the left (splenic) colic flexure, often sagging towards the pelvis; the greater omentum is fused to its front. Its proximal two thirds are midgut (middle colic artery from the SMA, vagus), its distal third hindgut (left colic artery from the IMA, pelvic splanchnic nerves). The left colic flexure is higher and more acute and is fixed to the diaphragm by the phrenicocolic ligament.',
       de: 'Hängt am Mesocolon transversum zwischen rechter (hepatischer) und linker (lienaler) Kolonflexur, oft bis ins Becken durch; das große Netz ist mit seiner Vorderseite verwachsen. Die proximalen zwei Drittel gehören zum Mitteldarm (A. colica media aus der AMS, Vagus), das distale Drittel zum Enddarm (A. colica sinistra aus der AMI, Nn. splanchnici pelvici). Die linke Flexur liegt höher, ist spitzer und durch das Lig. phrenicocolicum am Zwerchfell fixiert.' },
-    [['n_superior_mesenteric_plexus', 'sympathetic', segs('T10', 'T11')], MIDGUT_VAGUS, ['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']]],
+    [['n_superior_mesenteric_plexus', 'sympathetic', segs('T10', 'T11')], MIDGUT_VAGUS, ['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']], ['n_pelvic_splanchnic', 'parasympathetic', ['S2', 'S3', 'S4']]],
     ['a_middle_colic', 'a_marginal', 'a_left_colic'], ['v_smv', 'v_imv'],
     { en: 'Watershed at the splenic flexure: here the territories of the SMA (middle colic) and IMA (left colic) meet, linked only by the marginal artery, which can be thin or interrupted (Griffiths point). In low-flow states (shock, heart surgery, after aortic repair with IMA ligation) ischaemic colitis appears first at the splenic flexure.',
       de: 'Wasserscheide an der linken Flexur: Hier treffen die Stromgebiete der AMS (A. colica media) und der AMI (A. colica sinistra) aufeinander, verbunden nur durch die Marginalarterie, die dünn oder unterbrochen sein kann (Griffiths-Punkt). Bei Minderperfusion (Schock, Herzoperation, nach Aortenersatz mit Ligatur der AMI) tritt die ischämische Kolitis zuerst an der linken Flexur auf.' },
@@ -162,7 +162,7 @@ const organs = [
   O('descending_colon', 'intestine', { en: 'Descending colon', de: 'Absteigender Dickdarm', la: 'Colon descendens' },
     { en: 'Descends retroperitoneally on the left posterior abdominal wall from the left colic (splenic) flexure to the iliac crest, where it becomes the sigmoid colon. Hindgut: left colic artery from the IMA, sympathetic fibres from L1–L2 via the inferior mesenteric plexus, parasympathetic fibres from the pelvic splanchnic nerves (S2–S4) that ascend retroperitoneally.',
       de: 'Steigt sekundär retroperitoneal an der linken hinteren Bauchwand von der linken Flexur bis zum Beckenkamm ab und geht dort ins Sigma über. Enddarm: A. colica sinistra aus der AMI, sympathische Fasern aus L1–L2 über den Plexus mesentericus inferior, parasympathische Fasern aus den Nn. splanchnici pelvici (S2–S4), die retroperitoneal aufsteigen.' },
-    [['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']]],
+    [['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']], ['n_pelvic_splanchnic', 'parasympathetic', ['S2', 'S3', 'S4']]],
     ['a_left_colic', 'a_marginal'], ['v_imv'],
     { en: 'Hindgut pain is referred to the hypogastrium (below the umbilicus, L1). The splenic flexure, where the descending colon begins, is the watershed between the SMA and IMA and the typical site of ischaemic colitis.',
       de: 'Schmerz aus dem Enddarm projiziert ins Hypogastrium (unterhalb des Nabels, L1). Die linke Flexur am Beginn des Colon descendens ist die Wasserscheide zwischen AMS und AMI und typischer Ort der ischämischen Kolitis.' },
@@ -171,7 +171,7 @@ const organs = [
   O('sigmoid_colon', 'intestine', { en: 'Sigmoid colon', de: 'Sigma', la: 'Colon sigmoideum' },
     { en: 'S-shaped loop from the left iliac fossa to the rectum (S3), on its own mesentery (sigmoid mesocolon), so it is mobile. Supplied by the sigmoid arteries of the IMA; the left ureter and the left common iliac vessels lie behind the root of its mesocolon.',
       de: 'S-förmige Schlinge von der linken Fossa iliaca bis zum Rektum (S3) an einem eigenen Mesocolon sigmoideum und daher beweglich. Versorgt von den Aa. sigmoideae der AMI; hinter der Wurzel des Mesosigmas liegen linker Ureter und linke Iliakalgefäße.' },
-    [['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']]],
+    [['n_inferior_mesenteric_plexus', 'sympathetic', ['L1', 'L2']], ['n_pelvic_splanchnic', 'parasympathetic', ['S2', 'S3', 'S4']]],
     ['a_sigmoid'], ['v_imv'],
     { en: 'Diverticula form where the vasa recta pierce the wall, most often in the sigmoid colon (diverticulitis: "left-sided appendicitis"). A long sigmoid mesocolon allows volvulus (coffee-bean sign on X-ray).',
       de: 'Divertikel entstehen an den Durchtrittsstellen der Vasa recta, am häufigsten im Sigma (Divertikulitis: "Linksappendizitis"). Ein langes Mesosigma begünstigt einen Volvulus (Kaffeebohnenzeichen im Röntgenbild).' },
@@ -583,7 +583,7 @@ export const meta = {
   context: ['lumbar_vertebrae', 'ribs', 'hip_bone', 'diaphragm', 'rectus_abdominis', 'external_oblique', 'internal_oblique',
     'transversus_abdominis', 'quadratus_lumborum', 'a_abdominal_aorta', 'a_common_iliac', 'a_inf_phrenic', 'a_lumbar',
     'a_inf_epigastric', 'v_ivc', 'v_azygos', 'n_vagus', 'n_oesophageal_plexus', 'n_sympathetic_trunk', 'n_greater_splanchnic',
-    'n_lesser_splanchnic', 'n_phrenic', 'n_thoracoabdominal', 'n_subcostal', 'n_iliohypogastric', 'oesophagus_thoracic'],
+    'n_lesser_splanchnic', 'n_phrenic', 'n_thoracoabdominal', 'n_subcostal', 'n_iliohypogastric', 'oesophagus_thoracic', 'n_pelvic_splanchnic'],
   contextOpacity: 0.3, // fade the abdominal wall so the organs stay visible
   camera: { target: [0, -35, 0], position: [12, -28, 70] }
 };

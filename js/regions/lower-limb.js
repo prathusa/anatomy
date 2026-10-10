@@ -490,7 +490,7 @@ const arteries = [
       en: 'Arises at the aortic bifurcation (level of L4, about at the navel) and divides in front of the sacroiliac joint into the external and internal iliac arteries.',
       de: 'Entspringt an der Aortenbifurkation (Höhe L4, etwa am Nabel) und teilt sich vor dem Iliosakralgelenk in A. iliaca externa und interna.'
     },
-    path: [[0.8, -41, -2.4], [3, -45.6, -2.8], [4.6, -48.6, -3]], r: 0.6
+    paths: [[[0.8, -41, -2.4], [3, -45.6, -2.8], [4.6, -48.6, -3]], [[0.8, -41, -2.4], [-1.4, -45.6, -2.8], [-3.6, -48.6, -3]]], r: 0.6
   },
   {
     id: 'a_internal_iliac', type: 'artery', parents: ['a_common_iliac'],
@@ -499,7 +499,7 @@ const arteries = [
       en: 'Supplies the pelvic organs, perineum and gluteal region. Its branches to the lower limb are the superior and inferior gluteal and obturator arteries.',
       de: 'Versorgt Beckenorgane, Damm und Gesäßregion. Ihre Äste zum Bein sind die Aa. gluteae superior und inferior und die A. obturatoria.'
     },
-    path: [[4.6, -48.6, -3], [5, -51, -5.6], [5.4, -52.6, -6.4]], r: 0.45
+    paths: [[[4.6, -48.6, -3], [5, -51, -5.6], [5.4, -52.6, -6.4]], [[-3.6, -48.6, -3], [-4.6, -50.6, -5.4], [-5.2, -51.8, -6.1], [-5.4, -52.6, -6.4]]], r: 0.45
   },
   {
     id: 'a_iliolumbar', type: 'artery', parents: ['a_internal_iliac'],

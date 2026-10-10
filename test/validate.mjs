@@ -227,14 +227,42 @@ expectOrgans('n_coeliac_plexus', {
   jejunum: ['partial', { parasympathetic: 'lost', sympathetic: 'reduced' }]
 });
 expectOrgans('n_superior_mesenteric_plexus', {
-  jejunum: 'denervated', appendix: 'denervated', transverse_colon: ['partial', { sympathetic: 'reduced', parasympathetic: 'lost' }],
+  jejunum: 'denervated', appendix: 'denervated', transverse_colon: ['partial', { sympathetic: 'reduced', parasympathetic: 'reduced' }],
   descending_colon: 'unaffected'
 });
-expectOrgans('n_inferior_mesenteric_plexus', { sigmoid_colon: ['denervated', { sympathetic: 'lost' }], ureters: ['partial', { sympathetic: 'reduced' }], jejunum: 'unaffected' });
+expectOrgans('n_inferior_mesenteric_plexus', {
+  sigmoid_colon: ['partial', { sympathetic: 'lost', parasympathetic: undefined }], ureters: ['partial', { sympathetic: 'reduced' }], jejunum: 'unaffected',
+  bladder: ['partial', { sympathetic: 'lost', parasympathetic: undefined }]
+});
 expectOrgans('n_lesser_splanchnic', { appendix: ['partial', { sympathetic: 'lost' }], kidneys: ['partial', { sympathetic: 'reduced' }] });
 expectOrgans('n_phrenic', { gallbladder: ['partial', { sensory: 'lost' }], liver: ['partial', { sensory: 'lost' }], peritoneum: ['partial', { sensory: 'reduced' }] });
 expectOrgans('n_thoracoabdominal', { peritoneum: ['partial', { sensory: 'reduced' }], stomach: 'unaffected' });
 expectOrgans('n_vagal_trunk_anterior', { liver: ['partial', { parasympathetic: 'lost' }], stomach: ['partial', { parasympathetic: 'reduced' }] });
+
+// pelvis: pudendal nerve, pelvic floor nerves and the pelvic autonomic nerves
+expect('n_pudendal', {
+  external_anal_sphincter: 'paralysed', external_urethral_sphincter: 'paralysed', bulbospongiosus: 'paralysed', ischiocavernosus: 'paralysed',
+  superficial_transverse_perineal: 'paralysed', deep_transverse_perineal: 'paralysed', puborectalis: 'weakened',
+  pubococcygeus: 'unaffected', iliococcygeus: 'unaffected', coccygeus: 'unaffected'
+});
+expect('n_levator_ani', { pubococcygeus: 'paralysed', puborectalis: 'weakened', iliococcygeus: 'weakened', external_anal_sphincter: 'unaffected' });
+expect('n_perineal', { bulbospongiosus: 'paralysed', external_urethral_sphincter: 'paralysed', external_anal_sphincter: 'unaffected' });
+expect('n_inferior_rectal', { external_anal_sphincter: 'paralysed', bulbospongiosus: 'unaffected' });
+expect('root_S4', { external_anal_sphincter: 'weakened', coccygeus: 'weakened', pubococcygeus: 'weakened' });
+expectOrgans('n_pudendal', {
+  anal_canal: ['partial', { sensory: 'lost', parasympathetic: undefined }], penis: ['partial', { sensory: 'lost', parasympathetic: undefined }],
+  urethra_female: ['partial', { sensory: 'lost' }], bladder: 'unaffected'
+});
+expectOrgans('n_pelvic_splanchnic', {
+  bladder: ['partial', { parasympathetic: 'lost', sensory: 'reduced', sympathetic: undefined }], penis: ['partial', { parasympathetic: 'lost' }],
+  rectum: ['partial', { parasympathetic: 'lost' }], sigmoid_colon: ['partial', { parasympathetic: 'lost' }], ovaries: 'unaffected'
+});
+expectOrgans('n_hypogastric', {
+  bladder: ['partial', { sympathetic: 'lost', sensory: 'reduced', parasympathetic: undefined }], ductus_deferens: 'denervated', testis: 'unaffected'
+});
+expectOrgans('n_inferior_hypogastric_plexus', { prostate: 'denervated', bladder: ['partial', { sensory: 'reduced' }], anal_canal: ['partial', { sensory: undefined }] });
+expectOrgans('n_cavernous', { penis: ['partial', { parasympathetic: 'lost', sympathetic: 'lost', sensory: undefined }], prostate: 'unaffected' });
+expectOrgans('root_S3', { bladder: ['partial', { parasympathetic: 'reduced' }] });
 
 // Quiz: every generated question has 4 distinct options including the answer, all from the region
 // (or its context structures).
